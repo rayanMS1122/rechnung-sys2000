@@ -16,7 +16,7 @@ class ScreenInput extends StatefulWidget {
 
 class _ScreenInputState extends State<ScreenInput> {
   final _formKey = GlobalKey<FormState>();
-  final ScreenInputController controller = Get.put(ScreenInputController());
+  final ScreenInputController controller = Get.find();
 
   void _submitForm() {
     if (_formKey.currentState!.validate()) {

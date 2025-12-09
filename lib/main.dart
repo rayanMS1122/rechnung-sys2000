@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:get/instance_manager.dart';
 import 'package:intl/intl.dart';
+import 'package:reciepts/controller/screen_input_controller.dart';
 import 'package:reciepts/controller/unterschrift_controller.dart';
 import 'package:reciepts/screens/name_eingeben_screen.dart';
 
@@ -12,6 +13,7 @@ import 'package:reciepts/screens/screen_input.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized(); // 👈 REQUIRED before using plugins
   Get.put(UnterschriftController());
+  Get.put(ScreenInputController());
   runApp(const MyApp());
 }
 

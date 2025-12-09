@@ -338,71 +338,104 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
               showDialog(
                 context: context,
                 builder: (_) => AlertDialog(
-                  title: const Text('Einstellungen'),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Divider(),
-                      Text("firma infos "),
-                      TextField(
-                        controller: _screenInputController.firmaNameController,
-                        decoration: InputDecoration(label: Text("Name")),
+                  insetPadding:
+                      EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
+                  title:
+                      const Text('Einstellungen', textAlign: TextAlign.center),
+                  content: SizedBox(
+                    width: double.maxFinite,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text("Firma Infos",
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          SizedBox(height: 12.h),
+                          _buildSettingsTextField(
+                              _screenInputController.firmaNameController,
+                              "Firmenname"),
+                          _buildSettingsTextField(
+                              _screenInputController.firmaStrasseController,
+                              "Straße"),
+                          Row(
+                            children: [
+                              Expanded(
+                                  child: _buildSettingsTextField(
+                                      _screenInputController.firmaPlzController,
+                                      "PLZ")),
+                              SizedBox(width: 12.w),
+                              Expanded(
+                                  flex: 2,
+                                  child: _buildSettingsTextField(
+                                      _screenInputController.firmaOrtController,
+                                      "Ort")),
+                            ],
+                          ),
+                          _buildSettingsTextField(
+                              _screenInputController.firmaTelefonController,
+                              "Telefon"),
+                          _buildSettingsTextField(
+                              _screenInputController.firmaEmailController,
+                              "E-Mail"),
+                          _buildSettingsTextField(
+                              _screenInputController.firmaWebsiteController,
+                              "Website"),
+                          SizedBox(height: 20.h),
+                          const Divider(),
+                          const Text("Baustelle Infos",
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          SizedBox(height: 12.h),
+                          _buildSettingsTextField(
+                              _screenInputController.baustelleStrasseController,
+                              "Straße"),
+                          Row(
+                            children: [
+                              Expanded(
+                                  child: _buildSettingsTextField(
+                                      _screenInputController
+                                          .baustellePlzController,
+                                      "PLZ")),
+                              SizedBox(width: 12.w),
+                              Expanded(
+                                  flex: 2,
+                                  child: _buildSettingsTextField(
+                                      _screenInputController
+                                          .baustelleOrtController,
+                                      "Ort")),
+                            ],
+                          ),
+                          SizedBox(height: 20.h),
+                          const Text("Logo ändern",
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          SizedBox(height: 12.h),
+                          Center(
+                            child: ElevatedButton.icon(
+                              onPressed: () =>
+                                  _screenInputController.changeLogo(context),
+                              icon: Icon(Icons.image, size: 32.sp),
+                              label: const Text("Bild auswählen"),
+                              style: ElevatedButton.styleFrom(
+                                  // padding: EdgeInsets.symmetric(horizontal: EdgeInsets.symmetric(horizontal: 20.w, vertical: 14.h),
+                                  ),
+                            ),
+                          ),
+                          SizedBox(height: 10.h),
+                          TextButton(
+                            onPressed: _screenInputController.resetLogo,
+                            child: const Text("Standard-Logo wiederherstellen"),
+                          ),
+                        ],
                       ),
-                      TextField(
-                        controller:
-                            _screenInputController.firmaStrasseController,
-                        decoration: InputDecoration(label: Text("Name")),
-                      ),
-                      TextField(
-                        controller: _screenInputController.firmaPlzController,
-                        decoration: InputDecoration(label: Text("Name")),
-                      ),
-                      TextField(
-                        controller: _screenInputController.firmaOrtController,
-                        decoration: InputDecoration(label: Text("Name")),
-                      ),
-                      TextField(
-                        controller:
-                            _screenInputController.firmaTelefonController,
-                        decoration: InputDecoration(label: Text("Name")),
-                      ),
-                      TextField(
-                        controller: _screenInputController.firmaEmailController,
-                        decoration: InputDecoration(label: Text("Name")),
-                      ),
-                      Divider(),
-                      Text("Baustelle infos "),
-                      TextField(
-                        controller:
-                            _screenInputController.baustelleStrasseController,
-                        decoration: InputDecoration(label: Text("Name")),
-                      ),
-                      TextField(
-                        controller:
-                            _screenInputController.baustellePlzController,
-                        decoration: InputDecoration(label: Text("Name")),
-                      ),
-                      TextField(
-                        controller:
-                            _screenInputController.baustelleOrtController,
-                        decoration: InputDecoration(label: Text("Name")),
-                      ),
-                      const Text("Logo ändern"),
-                      IconButton(
-                        onPressed: () =>
-                            _screenInputController.changeLogo(context),
-                        icon: Icon(Icons.image, size: 48.sp), // responsive Icon
-                      ),
-                    ],
+                    ),
                   ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('Speichern'),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
                       child: const Text('Abbrechen'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
                     ),
                   ],
                 ),
@@ -418,7 +451,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
           Expanded(
             child: Center(
               child: Container(
-                width: 600.w, // responsiv
+                width: 600.w,
                 constraints: BoxConstraints(maxWidth: 900.w),
                 margin: EdgeInsets.all(16.w),
                 padding: EdgeInsets.all(24.w),
@@ -438,22 +471,20 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
             ),
           ),
 
-          // PDF-Button
+          // PDF-Button (genau wie bei dir)
           Padding(
             padding: EdgeInsets.fromLTRB(24.w, 8.h, 24.w, 24.h),
             child: SizedBox(
               width: double.infinity,
               height: 64.h,
               child: ElevatedButton.icon(
+                onPressed: _isProcessing ? null : _generateAndSharePdf,
                 icon: _isProcessing
                     ? SizedBox(
                         width: 24.w,
                         height: 24.w,
                         child: const CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 3,
-                        ),
-                      )
+                            color: Colors.white, strokeWidth: 3))
                     : Icon(Icons.picture_as_pdf, size: 32.sp),
                 label: Text(
                   _isProcessing
@@ -466,15 +497,38 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                   backgroundColor: Colors.redAccent,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  elevation: 4,
+                      borderRadius: BorderRadius.circular(12.r)),
+                  // elevation: ElevatedButton.styleFrom(
+                  //   backgroundColor: Colors.redAccent,
+                  //   foregroundColor: Colors.white,
+                  //   shape: RoundedRectangleBorder(
+                  //     borderRadius: BorderRadius.circular(12.r),
+                  //   ),
+                  //   elevation: 4,
+                  // ),
                 ),
-                onPressed: _isProcessing ? null : _generateAndSharePdf,
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+// Hilfs-Widget für schöne Textfelder im Dialog
+  Widget _buildSettingsTextField(
+      TextEditingController controller, String label) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 12.h),
+      child: TextField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.r)),
+          contentPadding:
+              EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+        ),
+        style: TextStyle(fontSize: 15.sp),
       ),
     );
   }
