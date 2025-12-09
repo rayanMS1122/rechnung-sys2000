@@ -23,28 +23,29 @@ class ReceiptRow extends StatelessWidget {
             child: Text(
               pos,
               style: const TextStyle(
-                  fontFamily: 'OCR-B',
-                  fontSize: 9,
+                  fontSize: 15,
                   color: Colors.black54,
                   fontWeight: FontWeight.bold),
             ),
           ),
           Expanded(
-            child: Text(
-              menge,
-              style: const TextStyle(
-                  fontFamily: 'OCR-B',
-                  fontSize: 9,
-                  color: Colors.black54,
-                  fontWeight: FontWeight.bold),
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                menge,
+                style: const TextStyle(
+                    fontSize: 15,
+                    color: Colors.black54,
+                    fontWeight: FontWeight.bold),
+                textAlign: TextAlign.end,
+              ),
             ),
           ),
           Expanded(
             child: Text(
               einh,
               style: const TextStyle(
-                  fontFamily: 'OCR-B',
-                  fontSize: 9,
+                  fontSize: 15,
                   color: Colors.black54,
                   fontWeight: FontWeight.bold),
             ),
@@ -53,8 +54,7 @@ class ReceiptRow extends StatelessWidget {
             child: Text(
               bezeichnung,
               style: const TextStyle(
-                  fontFamily: 'OCR-B',
-                  fontSize: 9,
+                  fontSize: 15,
                   color: Colors.black54,
                   fontWeight: FontWeight.bold),
             ),
@@ -63,20 +63,21 @@ class ReceiptRow extends StatelessWidget {
             child: Text(
               einzelPreis,
               style: const TextStyle(
-                  fontFamily: 'OCR-B',
-                  fontSize: 9,
+                  fontSize: 15,
                   color: Colors.black54,
                   fontWeight: FontWeight.bold),
+              textAlign: TextAlign.end,
             ),
           ),
           Expanded(
             child: Text(
               gesamtPreis,
               style: const TextStyle(
-                  fontFamily: 'OCR-B',
-                  fontSize: 9,
-                  color: Colors.black54,
-                  fontWeight: FontWeight.bold),
+                fontSize: 15,
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.end,
             ),
           ),
         ],

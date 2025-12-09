@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
+import 'package:get/instance_manager.dart';
+import 'package:intl/intl.dart';
+import 'package:reciepts/controller/unterschrift_controller.dart';
+import 'package:reciepts/screens/name_eingeben_screen.dart';
 
-import 'package:reciepts/screen_input.dart';
+import 'package:reciepts/screens/screen_input.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized(); // 👈 REQUIRED before using plugins
-
+  Get.put(UnterschriftController());
   runApp(const MyApp());
 }
 
@@ -13,14 +20,29 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'ENOC Receipt',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        fontFamily: 'Courier',
+    Intl.defaultLocale = 'de_DE';
+
+    return ScreenUtilInit(
+      designSize: const Size(375, 812),
+      child: GetMaterialApp(
+        locale: const Locale('de', 'DE'), // Deutsch
+        supportedLocales: const [
+          Locale('de', 'DE'),
+        ],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        title: 'ENOC Receipt',
+        theme: ThemeData(
+          useMaterial3: true,
+          primarySwatch: Colors.blue,
+          fontFamily: 'Courier',
+        ),
+        home: NameEingebenScreen(),
+        debugShowCheckedModeBanner: false,
       ),
-      home: const ScreenInput(),
-      debugShowCheckedModeBanner: false,
     );
   }
 }

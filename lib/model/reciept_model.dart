@@ -1,6 +1,7 @@
 class ReceiptData {
   int pos;
-  int menge;
+  List<String>? img;
+  double menge;
   String einh;
   String bezeichnung;
   double einzelPreis;
@@ -11,6 +12,7 @@ class ReceiptData {
     required this.einh,
     required this.bezeichnung,
     required this.einzelPreis,
+    this.img,
   });
   double get gesamtPreis => menge * einzelPreis;
 }
