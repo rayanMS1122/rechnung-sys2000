@@ -8,6 +8,7 @@ import 'package:reciepts/model/firma_model.dart';
 import 'package:reciepts/model/reciept_model.dart';
 
 class ScreenInputController extends GetxController {
+  late SharedPreferences prefs; // Einmalig laden!
   late CompanyData data = CompanyData(
     firma: Firma(
       name: "",
@@ -97,8 +98,6 @@ class ScreenInputController extends GetxController {
 
   // ====================== LADEN ======================
   Future<void> _loadAllDataFromStorage() async {
-    final prefs = await SharedPreferences.getInstance();
-
     // Standarddaten (falls nichts gespeichert)
     data = CompanyData(
       firma: Firma(
@@ -247,7 +246,7 @@ class ScreenInputController extends GetxController {
         logoPath.value = newFile.path;
 
         // Pfad speichern
-        final prefs = await SharedPreferences.getInstance();
+
         prefs.setString('logo_path', newFile.path);
 
         Get.snackbar("Erfolg", "Logo wurde gespeichert!");
