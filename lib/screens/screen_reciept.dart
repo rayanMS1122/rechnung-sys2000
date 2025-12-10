@@ -37,7 +37,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       final ocrFont =
           pw.Font.ttf(await rootBundle.load("assets/fonts/cour.ttf"));
       final Uint8List logoBytes =
-          await _screenInputController.logo.value.readAsBytes();
+          await _screenInputController.logo.value!.readAsBytes();
       final logoImage = pw.MemoryImage(logoBytes);
 
       final pdf = pw.Document();
@@ -141,15 +141,6 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
               ],
               // ─────────────────────────────────────
 
-              if (pages.length > 1)
-                pw.Align(
-                  alignment: pw.Alignment.topRight,
-                  child: pw.Text(
-                    'Seite ${pageIndex + 1} von ${pages.length}',
-                    style: pw.TextStyle(
-                        font: ocrFont, fontSize: 9, color: PdfColors.grey600),
-                  ),
-                ),
               if (pages.length > 1)
                 pw.Align(
                   alignment: pw.Alignment.topRight,

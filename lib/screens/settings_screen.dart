@@ -1,12 +1,16 @@
 // settings_screen.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:reciepts/controller/screen_input_controller.dart';
+import 'package:reciepts/controller/unterschrift_controller.dart';
+import 'package:reciepts/screens/unterschrft_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
-  final ScreenInputController controller = Get.find();
+  final ScreenInputController _controller = Get.find();
+  final UnterschriftController _unterschriftController = Get.find();
 
   SettingsScreen({super.key});
 
@@ -41,7 +45,6 @@ class SettingsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ==================== FIRMA ====================
             Card(
               elevation: 4,
               shape: RoundedRectangleBorder(
@@ -59,26 +62,26 @@ class SettingsScreen extends StatelessWidget {
                                 fontSize: 20.sp, fontWeight: FontWeight.bold)),
                     SizedBox(height: 16.h),
                     _buildTextField(
-                        controller.firmaNameController, "Firmenname"),
+                        _controller.firmaNameController, "Firmenname"),
                     _buildTextField(
-                        controller.firmaStrasseController, "Straße & Hausnr."),
+                        _controller.firmaStrasseController, "Straße & Hausnr."),
                     Row(
                       children: [
                         Expanded(
                             child: _buildTextField(
-                                controller.firmaPlzController, "PLZ")),
+                                _controller.firmaPlzController, "PLZ")),
                         SizedBox(width: 12.w),
                         Expanded(
                             flex: 2,
                             child: _buildTextField(
-                                controller.firmaOrtController, "Ort")),
+                                _controller.firmaOrtController, "Ort")),
                       ],
                     ),
                     _buildTextField(
-                        controller.firmaTelefonController, "Telefon"),
-                    _buildTextField(controller.firmaEmailController, "E-Mail"),
+                        _controller.firmaTelefonController, "Telefon"),
+                    _buildTextField(_controller.firmaEmailController, "E-Mail"),
                     _buildTextField(
-                        controller.firmaWebsiteController, "Website"),
+                        _controller.firmaWebsiteController, "Website"),
                   ],
                 ),
               ),
@@ -86,7 +89,6 @@ class SettingsScreen extends StatelessWidget {
 
             SizedBox(height: 24.h),
 
-            // ==================== BAUSTELLE ====================
             Card(
               elevation: 4,
               shape: RoundedRectangleBorder(
@@ -103,18 +105,18 @@ class SettingsScreen extends StatelessWidget {
                             ?.copyWith(
                                 fontSize: 20.sp, fontWeight: FontWeight.bold)),
                     SizedBox(height: 16.h),
-                    _buildTextField(controller.baustelleStrasseController,
+                    _buildTextField(_controller.baustelleStrasseController,
                         "Straße & Hausnr."),
                     Row(
                       children: [
                         Expanded(
                             child: _buildTextField(
-                                controller.baustellePlzController, "PLZ")),
+                                _controller.baustellePlzController, "PLZ")),
                         SizedBox(width: 12.w),
                         Expanded(
                             flex: 2,
                             child: _buildTextField(
-                                controller.baustelleOrtController, "Ort")),
+                                _controller.baustelleOrtController, "Ort")),
                       ],
                     ),
                   ],
@@ -124,7 +126,6 @@ class SettingsScreen extends StatelessWidget {
 
             SizedBox(height: 24.h),
 
-            // ==================== LOGO ====================
             Card(
               elevation: 4,
               shape: RoundedRectangleBorder(
@@ -141,7 +142,7 @@ class SettingsScreen extends StatelessWidget {
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(12.r),
                             child: Image.file(
-                              File(controller.logo.value.path),
+                              File(_controller.logo.value!.path),
                               height: 120.h,
                               width: 240.w,
                               fit: BoxFit.contain,
@@ -159,7 +160,9 @@ class SettingsScreen extends StatelessWidget {
                       children: [
                         Expanded(
                           child: ElevatedButton.icon(
-                            onPressed: () => controller.changeLogo(context),
+                            onPressed: () {
+                              _controller.changeLogo(context);
+                            },
                             icon: Icon(Icons.image, size: 28.sp),
                             label: Text("Neues Logo wählen",
                                 style: TextStyle(fontSize: 16.sp)),
@@ -173,7 +176,7 @@ class SettingsScreen extends StatelessWidget {
                         SizedBox(width: 12.w),
                         Expanded(
                           child: OutlinedButton.icon(
-                            onPressed: controller.resetLogo,
+                            onPressed: _controller.resetLogo,
                             icon: Icon(Icons.restore, size: 28.sp),
                             label: Text("Standard",
                                 style: TextStyle(fontSize: 16.sp)),
@@ -191,6 +194,33 @@ class SettingsScreen extends StatelessWidget {
               ),
             ),
 
+            SizedBox(height: 40.h),
+
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16.r)),
+              child: Padding(
+                  padding: EdgeInsets.all(20.w),
+                  child: Column(
+                    children: [
+                      Text("Rechnung bearbeiten nach unterschriften",
+                          style: TextStyle(
+                              fontSize: 20.sp, fontWeight: FontWeight.bold)),
+                      SizedBox(height: 20.h),
+                      Obx(() => Switch(
+                            value: _controller.enableEditing.value,
+                            onChanged: (value) {
+                              _controller.enableEditing.value = value;
+                              _unterschriftController.kundePngBytes.value =
+                                  null;
+                              _unterschriftController.monteurPngBytes.value =
+                                  null;
+                            },
+                          ))
+                    ],
+                  )),
+            ),
             SizedBox(height: 40.h),
 
             // Info-Text

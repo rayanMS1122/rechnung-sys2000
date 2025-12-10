@@ -9,7 +9,6 @@ import 'package:reciepts/model/firma_model.dart';
 import 'package:reciepts/model/reciept_model.dart';
 
 class ScreenInputController extends GetxController {
-  // ==================== DATA & OBSERVABLES ====================
   late CompanyData data = CompanyData(
     firma: Firma(
       name: "",
@@ -43,6 +42,7 @@ class ScreenInputController extends GetxController {
   final Rx<XFile> logo = XFile('').obs;
   final RxString logoPath = ''.obs;
   final rechnungTextFielde = <ReceiptData>[].obs;
+  final RxBool enableEditing = false.obs;
 
   // TextController
   late TextEditingController firmaNameController =
@@ -114,7 +114,6 @@ class ScreenInputController extends GetxController {
     super.onClose();
   }
 
-  // ==================== LADEN AUS PREFS ====================
   Future<void> _loadAllDataFromStorage() async {
     data = CompanyData(
       firma: Firma(

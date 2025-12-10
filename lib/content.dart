@@ -53,7 +53,7 @@ class _ReceiptContentState extends State<ReceiptContent> {
                     top: 20, left: 20, right: 20, bottom: 10),
                 child: Obx(
                   () => Image.file(
-                    File(_screenInputController.logo.value.path),
+                    File(_screenInputController.logo.value!.path),
                     fit: BoxFit.fitWidth,
                   ),
                 )),

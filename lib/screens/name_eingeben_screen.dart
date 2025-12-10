@@ -142,7 +142,6 @@ class NameEingebenScreen extends StatelessWidget {
                 keyboardType: TextInputType.phone,
                 textInputAction: TextInputAction.next,
                 decoration: _inputDecoration("Telefon", "0231 123456"),
-                // TODO
                 onChanged: (_) => updateKunde(),
               ),
               SizedBox(height: 16.h),
