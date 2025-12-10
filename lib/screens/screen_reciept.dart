@@ -1,7 +1,5 @@
-import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -292,7 +290,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         final file = File(
             "${dir.path}/Kassenbon_${DateTime.now().millisecondsSinceEpoch}.pdf");
         await file.writeAsBytes(pdfBytes);
-        print(file.path);
+        debugPrint(file.path);
         await Share.shareXFiles(
           [XFile(file.path)],
           text: 'Hier ist Ihr Kassenbon',

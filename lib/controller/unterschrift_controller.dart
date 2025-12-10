@@ -32,9 +32,9 @@ class UnterschriftController extends GetxController {
     try {
       kundePngBytes.value = await kundeSignatureController.toPngBytes();
       Navigator.pop(context);
-      print(kundePngBytes.value!.length);
+      debugPrint(kundePngBytes.value!.length.toString());
     } catch (e) {
-      print(e);
+      debugPrint(e.toString());
     }
   }
 
@@ -42,9 +42,9 @@ class UnterschriftController extends GetxController {
     try {
       monteurPngBytes.value = await monteurSignatureController.toPngBytes();
       Navigator.pop(context);
-      print(monteurPngBytes.value!.length);
+      debugPrint(monteurPngBytes.value!.length.toString());
     } catch (e) {
-      print(e);
+      debugPrint(e.toString());
     }
   }
 }

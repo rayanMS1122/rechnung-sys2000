@@ -8,7 +8,25 @@ import 'package:reciepts/model/firma_model.dart';
 import 'package:reciepts/model/reciept_model.dart';
 
 class ScreenInputController extends GetxController {
-  late CompanyData data;
+  late CompanyData data = CompanyData(
+      firma: Firma(
+          name: "name",
+          strasse: "strasse",
+          plz: "plz",
+          ort: "ort",
+          telefon: "telefon",
+          email: "email",
+          website: "website"),
+      baustelle: Baustelle(strasse: "strasse", plz: "plz", ort: "ort"),
+      kunde: Kunde(
+          name: "name",
+          strasse: "strasse",
+          plz: "plz",
+          ort: "ort",
+          telefon: "telefon",
+          email: "email"),
+      monteur: Monteur(
+          vorname: "vorname", nachname: "nachname", telefon: "telefon"));
 
   // TextController
   late TextEditingController firmaNameController =

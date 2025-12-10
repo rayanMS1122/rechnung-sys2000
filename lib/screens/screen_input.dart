@@ -1,12 +1,9 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:reciepts/controller/screen_input_controller.dart';
 import 'package:reciepts/screens/screen_reciept.dart';
 import 'package:reciepts/screens/settings_screen.dart';
-import '../model/reciept_model.dart';
 
 class ScreenInput extends StatefulWidget {
   const ScreenInput({super.key});

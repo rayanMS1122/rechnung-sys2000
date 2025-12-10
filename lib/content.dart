@@ -1,20 +1,14 @@
 import 'dart:io';
-import 'dart:typed_data';
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:reciepts/controller/screen_input_controller.dart';
 import 'package:reciepts/controller/unterschrift_controller.dart';
 import 'package:reciepts/screens/reciept_row.dart';
 import 'package:reciepts/screens/unterschrft_screen.dart';
-import 'package:responsive_sizer/responsive_sizer.dart';
 
 import 'model/reciept_model.dart';
-import "package:intl/intl.dart";
 import 'package:signature/signature.dart';
 
 class ReceiptContent extends StatefulWidget {

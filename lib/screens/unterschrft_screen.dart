@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get/instance_manager.dart';
 import 'package:reciepts/controller/unterschrift_controller.dart';
-import 'package:signature/signature.dart';
 
 class UnterschrftScreen extends StatelessWidget {
   final title;
