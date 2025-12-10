@@ -33,23 +33,16 @@ class _ScreenInputState extends State<ScreenInput> {
     }
   }
 
-  // 1
   bool get editingEnabled {
-    // _unterschriftController.monteurPngBytes!.value = null;
     final enable = _controller.enableEditing.value;
-
     final hasSignature =
         (_unterschriftController.kundePngBytes.value ?? []).isNotEmpty ||
             (_unterschriftController.monteurPngBytes.value ?? []).isNotEmpty;
-
     return enable || !hasSignature;
   }
 
   @override
   Widget build(BuildContext context) {
-    // Wichtig: ScreenUtilInit sollte eigentlich im main.dart / MaterialApp sein
-    // Falls du es noch nicht hast, hier ein kurzer Hinweis am Ende
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Enter Receipt Data'),
@@ -60,7 +53,7 @@ class _ScreenInputState extends State<ScreenInput> {
                     icon: const Icon(Icons.clear),
                     onPressed: _controller.rechnungTextFielde.clear,
                   )
-                : Text(""),
+                : const SizedBox.shrink(),
           ),
           IconButton(
             icon: const Icon(Icons.settings),
@@ -72,152 +65,168 @@ class _ScreenInputState extends State<ScreenInput> {
         ],
       ),
       body: Padding(
-        padding: EdgeInsets.all(16.0.w), // responsiv
+        padding: EdgeInsets.all(16.0.w),
         child: Form(
           key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                SizedBox(
-                  width: double.infinity,
-                  height: 0.6
-                      .sh, // 60% der Bildschirmhöhe – viel sauberer als MediaQuery
-                  child: Obx(() => editingEnabled
-                      ? ListView.builder(
-                          itemCount: _controller.rechnungTextFielde.length,
-                          itemBuilder: (context, index) {
-                            return Padding(
-                              padding: EdgeInsets.only(
-                                  bottom: 12.0.h), // schöner Zeilenabstand
-                              child: Row(
+          child: Column(
+            children: [
+              Expanded(
+                child: Obx(() => editingEnabled
+                    ? ListView.builder(
+                        itemCount: _controller.rechnungTextFielde.length,
+                        itemBuilder: (context, index) {
+                          return Card(
+                            margin: EdgeInsets.only(bottom: 12.h),
+                            child: Padding(
+                              padding: EdgeInsets.all(12.w),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // Positionsnummer (deaktiviert)
-                                  Expanded(
-                                    child: TextFormField(
-                                      enabled: false,
-                                      decoration: InputDecoration(
-                                        labelText: (index + 1).toString(),
-                                        border: const OutlineInputBorder(),
-                                        contentPadding: EdgeInsets.symmetric(
-                                          horizontal: 12.w,
-                                          vertical: 16.h,
+                                  // Header mit Position und Löschen
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Position ${index + 1}',
+                                        style: TextStyle(
+                                          fontSize: 16.sp,
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
-                                      style: TextStyle(fontSize: 14.sp),
-                                    ),
+                                      IconButton(
+                                        onPressed: () {
+                                          _controller.rechnungTextFielde
+                                              .removeAt(index);
+                                        },
+                                        icon: const Icon(
+                                          Icons.delete,
+                                          color: Colors.red,
+                                        ),
+                                        iconSize: 24.sp,
+                                      ),
+                                    ],
                                   ),
-                                  SizedBox(width: 8.w),
+                                  SizedBox(height: 12.h),
 
-                                  // Menge
-                                  Expanded(
-                                    child: TextFormField(
-                                      keyboardType:
-                                          TextInputType.numberWithOptions(
-                                              decimal: true),
-                                      decoration: InputDecoration(
-                                        labelText: 'Menge',
-                                        border: const OutlineInputBorder(),
-                                        contentPadding: EdgeInsets.symmetric(
-                                          horizontal: 12.w,
-                                          vertical: 16.h,
+                                  // Menge und Einheit in einer Zeile
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        flex: 1,
+                                        child: TextFormField(
+                                          keyboardType:
+                                              TextInputType.numberWithOptions(
+                                                  decimal: true),
+                                          decoration: InputDecoration(
+                                            labelText: 'Menge',
+                                            border: const OutlineInputBorder(),
+                                            contentPadding:
+                                                EdgeInsets.symmetric(
+                                              horizontal: 12.w,
+                                              vertical: 16.h,
+                                            ),
+                                          ),
+                                          style: TextStyle(fontSize: 14.sp),
+                                          onChanged: (value) {
+                                            _controller
+                                                    .rechnungTextFielde[index]
+                                                    .menge =
+                                                double.tryParse(value) ?? 0.0;
+                                          },
                                         ),
                                       ),
-                                      style: TextStyle(fontSize: 14.sp),
-                                      onChanged: (value) {
-                                        _controller.rechnungTextFielde[index]
-                                                .menge =
-                                            double.tryParse(value) ?? 0.0;
-                                      },
-                                    ),
-                                  ),
-                                  SizedBox(width: 8.w),
-
-                                  // Einheit
-                                  Expanded(
-                                    child: TextFormField(
-                                      decoration: InputDecoration(
-                                        labelText: 'Einh',
-                                        border: const OutlineInputBorder(),
-                                        contentPadding: EdgeInsets.symmetric(
-                                          horizontal: 12.w,
-                                          vertical: 16.h,
+                                      SizedBox(width: 12.w),
+                                      Expanded(
+                                        flex: 1,
+                                        child: TextFormField(
+                                          decoration: InputDecoration(
+                                            labelText: 'Einheit',
+                                            border: const OutlineInputBorder(),
+                                            contentPadding:
+                                                EdgeInsets.symmetric(
+                                              horizontal: 12.w,
+                                              vertical: 16.h,
+                                            ),
+                                          ),
+                                          style: TextStyle(fontSize: 14.sp),
+                                          onChanged: (value) {
+                                            _controller
+                                                .rechnungTextFielde[index]
+                                                .einh = value;
+                                          },
                                         ),
                                       ),
-                                      style: TextStyle(fontSize: 14.sp),
-                                      onChanged: (value) {
-                                        _controller.rechnungTextFielde[index]
-                                            .einh = value;
-                                      },
-                                    ),
-                                  ),
-                                  SizedBox(width: 8.w),
-
-                                  // Bezeichnung
-                                  Expanded(
-                                    flex: 2, // etwas mehr Platz für langen Text
-                                    child: TextFormField(
-                                      decoration: InputDecoration(
-                                        labelText: 'Bezeichnung',
-                                        border: const OutlineInputBorder(),
-                                        contentPadding: EdgeInsets.symmetric(
-                                          horizontal: 12.w,
-                                          vertical: 16.h,
+                                      SizedBox(width: 12.w),
+                                      Expanded(
+                                        flex: 1,
+                                        child: // Einzelpreis
+                                            TextFormField(
+                                          keyboardType:
+                                              TextInputType.numberWithOptions(
+                                                  decimal: true),
+                                          decoration: InputDecoration(
+                                            labelText: 'Einzelpreis',
+                                            border: const OutlineInputBorder(),
+                                            contentPadding:
+                                                EdgeInsets.symmetric(
+                                              horizontal: 12.w,
+                                              vertical: 16.h,
+                                            ),
+                                          ),
+                                          style: TextStyle(fontSize: 14.sp),
+                                          onChanged: (value) {
+                                            _controller
+                                                    .rechnungTextFielde[index]
+                                                    .einzelPreis =
+                                                double.tryParse(value) ?? 0.0;
+                                          },
                                         ),
-                                      ),
-                                      style: TextStyle(fontSize: 14.sp),
-                                      onChanged: (value) {
-                                        _controller.rechnungTextFielde[index]
-                                            .bezeichnung = value;
-                                      },
-                                    ),
+                                      )
+                                    ],
                                   ),
-                                  SizedBox(width: 8.w),
+                                  SizedBox(height: 12.h),
 
-                                  // Einzelpreis
-                                  Expanded(
-                                    child: TextFormField(
-                                      keyboardType:
-                                          TextInputType.numberWithOptions(
-                                              decimal: true),
-                                      decoration: InputDecoration(
-                                        labelText: 'Einzelpreis',
-                                        border: const OutlineInputBorder(),
-                                        contentPadding: EdgeInsets.symmetric(
-                                          horizontal: 12.w,
-                                          vertical: 16.h,
-                                        ),
+                                  // Bezeichnung in voller Breite
+                                  TextFormField(
+                                    decoration: InputDecoration(
+                                      labelText: 'Bezeichnung',
+                                      border: const OutlineInputBorder(),
+                                      contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 12.w,
+                                        vertical: 16.h,
                                       ),
-                                      style: TextStyle(fontSize: 14.sp),
-                                      onChanged: (value) {
-                                        _controller.rechnungTextFielde[index]
-                                                .einzelPreis =
-                                            double.tryParse(value) ?? 0.0;
-                                      },
                                     ),
-                                  ),
-                                  SizedBox(width: 8.w),
-
-                                  // Löschen-Button
-                                  IconButton(
-                                    onPressed: () {
-                                      _controller.rechnungTextFielde
-                                          .removeAt(index);
+                                    style: TextStyle(fontSize: 14.sp),
+                                    onChanged: (value) {
+                                      _controller.rechnungTextFielde[index]
+                                          .bezeichnung = value;
                                     },
-                                    icon: Icon(Icons.delete,
-                                        color: Colors.redAccent, size: 28.sp),
                                   ),
+                                  SizedBox(height: 12.h),
                                 ],
                               ),
-                            );
-                          },
-                        )
-                      : Text(
-                          "Du kannst die Rechnung nach der Unterschrift nicht bearbeiten. Gehe in die Einstellungen und aktiviere dort Rechnung bearbeiten")),
-                ),
-                SizedBox(height: 24.h),
-                Obx(
-                  () => editingEnabled
-                      ? ElevatedButton(
+                            ),
+                          );
+                        },
+                      )
+                    : Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(24.w),
+                          child: Text(
+                            "Du kannst die Rechnung nach der Unterschrift nicht bearbeiten. Gehe in die Einstellungen und aktiviere dort Rechnung bearbeiten",
+                            style: TextStyle(fontSize: 16.sp),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      )),
+              ),
+              SizedBox(height: 16.h),
+              Obx(
+                () => editingEnabled
+                    ? SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
                           onPressed: _controller.addNewTextFields,
                           style: ElevatedButton.styleFrom(
                             padding: EdgeInsets.symmetric(
@@ -225,11 +234,14 @@ class _ScreenInputState extends State<ScreenInput> {
                             textStyle: TextStyle(fontSize: 16.sp),
                           ),
                           child: const Text('Neue Zeile'),
-                        )
-                      : Text(""),
-                ),
-                SizedBox(height: 16.h),
-                ElevatedButton(
+                        ),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+              SizedBox(height: 12.h),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
                   onPressed: () {
                     _unterschriftController.kundePngBytes.value = null;
                     _unterschriftController.monteurPngBytes.value = null;
@@ -242,8 +254,11 @@ class _ScreenInputState extends State<ScreenInput> {
                   ),
                   child: const Text('Neue Rechnung'),
                 ),
-                SizedBox(height: 20.h),
-                ElevatedButton(
+              ),
+              SizedBox(height: 12.h),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
                   onPressed: _submitForm,
                   style: ElevatedButton.styleFrom(
                     padding:
@@ -252,9 +267,9 @@ class _ScreenInputState extends State<ScreenInput> {
                   ),
                   child: const Text('Weiter'),
                 ),
-                SizedBox(height: 20.h),
-              ],
-            ),
+              ),
+              SizedBox(height: 20.h),
+            ],
           ),
         ),
       ),

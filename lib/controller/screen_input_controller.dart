@@ -339,7 +339,6 @@ class ScreenInputController extends GetxController {
     await prefs.remove('logo_path');
   }
 
-  // ==================== RECHNUNGSPOSITIONEN ====================
   void addNewTextFields() {
     rechnungTextFielde.add(ReceiptData(
       pos: rechnungTextFielde.length,
