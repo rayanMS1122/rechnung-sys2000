@@ -10,7 +10,35 @@ import 'package:reciepts/model/reciept_model.dart';
 
 class ScreenInputController extends GetxController {
   // ==================== DATA & OBSERVABLES ====================
-  late CompanyData data;
+  late CompanyData data = CompanyData(
+    firma: Firma(
+      name: "",
+      strasse: "",
+      plz: "",
+      ort: "",
+      telefon: "",
+      email: "",
+      website: "",
+    ),
+    baustelle: Baustelle(
+      strasse: "",
+      plz: "",
+      ort: "",
+    ),
+    kunde: Kunde(
+      name: "",
+      strasse: "",
+      plz: "",
+      ort: "",
+      telefon: "",
+      email: "",
+    ),
+    monteur: Monteur(
+      vorname: "",
+      nachname: "",
+      telefon: "",
+    ),
+  );
 
   final Rx<XFile> logo = XFile('').obs;
   final RxString logoPath = ''.obs;
