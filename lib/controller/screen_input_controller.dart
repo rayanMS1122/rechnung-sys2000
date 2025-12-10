@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -8,99 +9,65 @@ import 'package:reciepts/model/firma_model.dart';
 import 'package:reciepts/model/reciept_model.dart';
 
 class ScreenInputController extends GetxController {
-  late SharedPreferences prefs; // Einmalig laden!
-  late CompanyData data = CompanyData(
-    firma: Firma(
-      name: "",
-      strasse: "",
-      plz: "",
-      ort: "",
-      telefon: "",
-      email: "",
-      website: "",
-    ),
-    baustelle: Baustelle(
-      strasse: "",
-      plz: "",
-      ort: "",
-    ),
-    kunde: Kunde(
-      name: "",
-      strasse: "",
-      plz: "",
-      ort: "",
-      telefon: "",
-      email: "",
-    ),
-    monteur: Monteur(
-      vorname: "",
-      nachname: "",
-      telefon: "",
-    ),
-  );
+  // ==================== DATA & OBSERVABLES ====================
+  late CompanyData data;
 
-  // TextController
-  late TextEditingController firmaNameController =
-      TextEditingController(text: data.firma.name ?? "");
-  late TextEditingController firmaStrasseController =
-      TextEditingController(text: data.firma.strasse ?? "");
-  late TextEditingController firmaPlzController =
-      TextEditingController(text: data.firma.plz ?? "");
-  late TextEditingController firmaOrtController =
-      TextEditingController(text: data.firma.ort ?? "");
-  late TextEditingController firmaTelefonController =
-      TextEditingController(text: data.firma.telefon ?? "");
-  late TextEditingController firmaWebsiteController =
-      TextEditingController(text: data.firma.website ?? "");
-  late TextEditingController firmaEmailController =
-      TextEditingController(text: data.firma.email ?? "");
-
-  late TextEditingController kundeNameController =
-      TextEditingController(text: data.kunde?.name ?? "");
-  late TextEditingController kundeStrasseController =
-      TextEditingController(text: data.kunde?.strasse ?? "");
-  late TextEditingController kundePlzController =
-      TextEditingController(text: data.kunde?.plz ?? "");
-  late TextEditingController kundeOrtController =
-      TextEditingController(text: data.kunde?.ort ?? "");
-  late TextEditingController kundeTeleController =
-      TextEditingController(text: data.kunde?.telefon ?? "");
-  late TextEditingController kundeEmailController =
-      TextEditingController(text: data.kunde?.email ?? "");
-
-  late TextEditingController monteurVornameController =
-      TextEditingController(text: data.monteur?.vorname ?? "");
-  late TextEditingController monteurNachnameController =
-      TextEditingController(text: data.monteur?.nachname ?? "");
-  late TextEditingController monteurTeleController =
-      TextEditingController(text: data.monteur?.telefon ?? "");
-  late TextEditingController monteurEmailController =
-      TextEditingController(text: data.monteur?.email ?? "");
-
-  late TextEditingController baustelleStrasseController =
-      TextEditingController(text: data.baustelle.strasse ?? "");
-  late TextEditingController baustellePlzController =
-      TextEditingController(text: data.baustelle.plz ?? "");
-  late TextEditingController baustelleOrtController =
-      TextEditingController(text: data.baustelle.ort ?? "");
   final Rx<XFile> logo = XFile('').obs;
-  final RxString logoPath = ''.obs; // Speichert den Pfad zum gespeicherten Logo
-
+  final RxString logoPath = ''.obs;
   final rechnungTextFielde = <ReceiptData>[].obs;
+
+  // ==================== TEXT CONTROLLER ====================
+  late TextEditingController firmaNameController;
+  late TextEditingController firmaStrasseController;
+  late TextEditingController firmaPlzController;
+  late TextEditingController firmaOrtController;
+  late TextEditingController firmaTelefonController;
+  late TextEditingController firmaEmailController;
+  late TextEditingController firmaWebsiteController;
+
+  late TextEditingController kundeNameController;
+  late TextEditingController kundeStrasseController;
+  late TextEditingController kundePlzController;
+  late TextEditingController kundeOrtController;
+  late TextEditingController kundeTeleController;
+  late TextEditingController kundeEmailController;
+
+  late TextEditingController monteurVornameController;
+  late TextEditingController monteurNachnameController;
+  late TextEditingController monteurTeleController;
+  late TextEditingController monteurEmailController;
+
+  late TextEditingController baustelleStrasseController;
+  late TextEditingController baustellePlzController;
+  late TextEditingController baustelleOrtController;
+
+  // ==================== PRIVATE ====================
+  late SharedPreferences prefs;
+  Timer? _debounceTimer;
   final ImagePicker _picker = ImagePicker();
 
+  // ==================== LIFECYCLE ====================
   @override
   void onInit() async {
+    // 1. SharedPreferences einmalig laden (einziger Ort!)
+    prefs = await SharedPreferences.getInstance();
+    await prefs.reload(); // WICHTIG für iOS!
+
+    // 2. Daten laden + Controller initialisieren
     await _loadAllDataFromStorage();
-    _setupListeners(); // Live-Speichern bei jeder Änderung
+    _setupListeners();
+
     super.onInit();
   }
 
-  // ====================== LADEN ======================
-  Future<void> _loadAllDataFromStorage() async {
-    final prefs = await SharedPreferences.getInstance();
+  @override
+  void onClose() {
+    _debounceTimer?.cancel();
+    super.onClose();
+  }
 
-    // Standarddaten (falls nichts gespeichert)
+  // ==================== LADEN AUS PREFS ====================
+  Future<void> _loadAllDataFromStorage() async {
     data = CompanyData(
       firma: Firma(
         name: prefs.getString('firma_name') ?? "sys2000",
@@ -132,10 +99,9 @@ class ScreenInputController extends GetxController {
       ),
     );
 
-    // Controller mit geladenen Werten füllen
     _initControllers();
 
-    // Logo laden (wenn gespeichert)
+    // Logo laden
     String? savedLogoPath = prefs.getString('logo_path');
     if (savedLogoPath != null && await File(savedLogoPath).exists()) {
       logo.value = XFile(savedLogoPath);
@@ -144,10 +110,15 @@ class ScreenInputController extends GetxController {
       logo.value = XFile('assets/system2000_logo.png');
     }
 
-    // Erste Rechnungsposition
+    // Erste Rechnungsposition falls leer
     if (rechnungTextFielde.isEmpty) {
       rechnungTextFielde.add(ReceiptData(
-          pos: 0, menge: 0, einh: '', bezeichnung: '', einzelPreis: 0.0));
+        pos: 0,
+        menge: 0,
+        einh: '',
+        bezeichnung: '',
+        einzelPreis: 0.0,
+      ));
     }
   }
 
@@ -157,8 +128,8 @@ class ScreenInputController extends GetxController {
     firmaPlzController = TextEditingController(text: data.firma.plz);
     firmaOrtController = TextEditingController(text: data.firma.ort);
     firmaTelefonController = TextEditingController(text: data.firma.telefon);
-    firmaWebsiteController = TextEditingController(text: data.firma.website);
     firmaEmailController = TextEditingController(text: data.firma.email);
+    firmaWebsiteController = TextEditingController(text: data.firma.website);
 
     kundeNameController = TextEditingController(text: data.kunde?.name ?? '');
     kundeStrasseController =
@@ -170,11 +141,13 @@ class ScreenInputController extends GetxController {
     kundeEmailController = TextEditingController(text: data.kunde?.email ?? '');
 
     monteurVornameController =
-        TextEditingController(text: data.monteur!.vorname);
+        TextEditingController(text: data.monteur?.vorname ?? '');
     monteurNachnameController =
-        TextEditingController(text: data.monteur!.nachname);
-    monteurTeleController = TextEditingController(text: data.monteur!.telefon);
-    monteurEmailController = TextEditingController(text: data.monteur!.email);
+        TextEditingController(text: data.monteur?.nachname ?? '');
+    monteurTeleController =
+        TextEditingController(text: data.monteur?.telefon ?? '');
+    monteurEmailController =
+        TextEditingController(text: data.monteur?.email ?? '');
 
     baustelleStrasseController =
         TextEditingController(text: data.baustelle.strasse);
@@ -182,52 +155,106 @@ class ScreenInputController extends GetxController {
     baustelleOrtController = TextEditingController(text: data.baustelle.ort);
   }
 
-  // ====================== AUTOMATISCHES SPEICHERN BEI JEDER ÄNDERUNG ======================
+  // ==================== DEBOUNCED SAVE ====================
+  void _debouncedSave(String key, String value) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 800), () {
+      prefs.setString(key, value.trim());
+    });
+  }
+
+  // ==================== ALLE LISTENER (Auto-Save) ====================
   void _setupListeners() {
     // Monteur
-    monteurVornameController.addListener(
-        () => _saveToPrefs('monteur_vorname', monteurVornameController.text));
-    monteurNachnameController.addListener(
-        () => _saveToPrefs('monteur_nachname', monteurNachnameController.text));
-    monteurTeleController.addListener(
-        () => _saveToPrefs('monteur_telefon', monteurTeleController.text));
-    monteurEmailController.addListener(
-        () => _saveToPrefs('monteur_email', monteurEmailController.text));
+    monteurVornameController.addListener(() {
+      data.monteur!.vorname = monteurVornameController.text;
+      _debouncedSave('monteur_vorname', monteurVornameController.text);
+    });
+    monteurNachnameController.addListener(() {
+      data.monteur!.nachname = monteurNachnameController.text;
+      _debouncedSave('monteur_nachname', monteurNachnameController.text);
+    });
+    monteurTeleController.addListener(() {
+      data.monteur!.telefon = monteurTeleController.text;
+      _debouncedSave('monteur_telefon', monteurTeleController.text);
+    });
+    monteurEmailController.addListener(() {
+      data.monteur!.email = monteurEmailController.text;
+      _debouncedSave('monteur_email', monteurEmailController.text);
+    });
 
     // Kunde
-    kundeNameController.addListener(
-        () => _saveToPrefs('kunde_name', kundeNameController.text));
-    kundeStrasseController.addListener(
-        () => _saveToPrefs('kunde_strasse', kundeStrasseController.text));
-    kundePlzController
-        .addListener(() => _saveToPrefs('kunde_plz', kundePlzController.text));
-    kundeOrtController
-        .addListener(() => _saveToPrefs('kunde_ort', kundeOrtController.text));
-    kundeTeleController.addListener(
-        () => _saveToPrefs('kunde_telefon', kundeTeleController.text));
-    kundeEmailController.addListener(
-        () => _saveToPrefs('kunde_email', kundeEmailController.text));
+    kundeNameController.addListener(() {
+      data.kunde!.name = kundeNameController.text;
+      _debouncedSave('kunde_name', kundeNameController.text);
+    });
+    kundeStrasseController.addListener(() {
+      data.kunde!.strasse = kundeStrasseController.text;
+      _debouncedSave('kunde_strasse', kundeStrasseController.text);
+    });
+    kundePlzController.addListener(() {
+      data.kunde!.plz = kundePlzController.text;
+      _debouncedSave('kunde_plz', kundePlzController.text);
+    });
+    kundeOrtController.addListener(() {
+      data.kunde!.ort = kundeOrtController.text;
+      _debouncedSave('kunde_ort', kundeOrtController.text);
+    });
+    kundeTeleController.addListener(() {
+      data.kunde!.telefon = kundeTeleController.text;
+      _debouncedSave('kunde_telefon', kundeTeleController.text);
+    });
+    kundeEmailController.addListener(() {
+      data.kunde!.email = kundeEmailController.text;
+      _debouncedSave('kunde_email', kundeEmailController.text);
+    });
 
     // Baustelle
-    baustelleStrasseController.addListener(() =>
-        _saveToPrefs('baustelle_strasse', baustelleStrasseController.text));
-    baustellePlzController.addListener(
-        () => _saveToPrefs('baustelle_plz', baustellePlzController.text));
-    baustelleOrtController.addListener(
-        () => _saveToPrefs('baustelle_ort', baustelleOrtController.text));
+    baustelleStrasseController.addListener(() {
+      data.baustelle.strasse = baustelleStrasseController.text;
+      _debouncedSave('baustelle_strasse', baustelleStrasseController.text);
+    });
+    baustellePlzController.addListener(() {
+      data.baustelle.plz = baustellePlzController.text;
+      _debouncedSave('baustelle_plz', baustellePlzController.text);
+    });
+    baustelleOrtController.addListener(() {
+      data.baustelle.ort = baustelleOrtController.text;
+      _debouncedSave('baustelle_ort', baustelleOrtController.text);
+    });
 
-    // Firma (optional – meist fix, aber falls du sie änderbar machst)
-    firmaNameController.addListener(
-        () => _saveToPrefs('firma_name', firmaNameController.text));
-    // ... weitere Firma-Felder wenn gewünscht
+    // Firma (falls du sie bearbeitbar machst)
+    firmaNameController.addListener(() {
+      data.firma.name = firmaNameController.text;
+      _debouncedSave('firma_name', firmaNameController.text);
+    });
+    firmaStrasseController.addListener(() {
+      data.firma.strasse = firmaStrasseController.text;
+      _debouncedSave('firma_strasse', firmaStrasseController.text);
+    });
+    firmaPlzController.addListener(() {
+      data.firma.plz = firmaPlzController.text;
+      _debouncedSave('firma_plz', firmaPlzController.text);
+    });
+    firmaOrtController.addListener(() {
+      data.firma.ort = firmaOrtController.text;
+      _debouncedSave('firma_ort', firmaOrtController.text);
+    });
+    firmaTelefonController.addListener(() {
+      data.firma.telefon = firmaTelefonController.text;
+      _debouncedSave('firma_telefon', firmaTelefonController.text);
+    });
+    firmaEmailController.addListener(() {
+      data.firma.email = firmaEmailController.text;
+      _debouncedSave('firma_email', firmaEmailController.text);
+    });
+    firmaWebsiteController.addListener(() {
+      data.firma.website = firmaWebsiteController.text;
+      _debouncedSave('firma_website', firmaWebsiteController.text);
+    });
   }
 
-  Future<void> _saveToPrefs(String key, String value) async {
-    final prefs = await SharedPreferences.getInstance();
-    prefs.setString(key, value.trim());
-  }
-
-  // ====================== LOGO SPEICHERN ======================
+  // ==================== LOGO FUNKTIONEN ====================
   Future<void> changeLogo(BuildContext context) async {
     try {
       final XFile? pickedFile = await _picker.pickImage(
@@ -238,7 +265,6 @@ class ScreenInputController extends GetxController {
       );
 
       if (pickedFile != null) {
-        // Bild in App-Verzeichnis kopieren (dauerhaft speichern)
         final directory = await getApplicationDocumentsDirectory();
         final String newPath =
             "${directory.path}/logo_${DateTime.now().millisecondsSinceEpoch}.png";
@@ -246,26 +272,23 @@ class ScreenInputController extends GetxController {
 
         logo.value = XFile(newFile.path);
         logoPath.value = newFile.path;
-
-        // Pfad speichern
-        final prefs = await SharedPreferences.getInstance();
-        prefs.setString('logo_path', newFile.path);
+        await prefs.setString('logo_path', newFile.path);
 
         Get.snackbar("Erfolg", "Logo wurde gespeichert!");
       }
       Navigator.pop(context);
     } catch (e) {
-      Get.snackbar("Fehler", "Logo konnte nicht gespeichert werden");
+      Get.snackbar("Fehler", "Logo konnte nicht gespeichert werden: $e");
     }
   }
 
   void resetLogo() async {
     logo.value = XFile('assets/system2000_logo.png');
     logoPath.value = '';
-    final prefs = await SharedPreferences.getInstance();
-    prefs.remove('logo_path');
+    await prefs.remove('logo_path');
   }
 
+  // ==================== RECHNUNGSPOSITIONEN ====================
   void addNewTextFields() {
     rechnungTextFielde.add(ReceiptData(
       pos: rechnungTextFielde.length,
