@@ -206,8 +206,12 @@ class ScreenInputController extends GetxController {
   // ==================== DEBOUNCED SAVE ====================
   void _debouncedSave(String key, String value) {
     _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 800), () {
-      prefs.setString(key, value.trim());
+    _debounceTimer = Timer(const Duration(milliseconds: 800), () async {
+      final trimmedValue = value.trim();
+      await prefs.setString(key, trimmedValue);
+
+      // DIES IST DIE MAGISCHE ZEILE FÜR iOS!!!
+      await prefs.reload(); // ← zwingt sofortigen Refresh des Caches
     });
   }
 
