@@ -16,30 +16,50 @@ class ScreenInputController extends GetxController {
   final RxString logoPath = ''.obs;
   final rechnungTextFielde = <ReceiptData>[].obs;
 
-  // ==================== TEXT CONTROLLER ====================
-  late TextEditingController firmaNameController;
-  late TextEditingController firmaStrasseController;
-  late TextEditingController firmaPlzController;
-  late TextEditingController firmaOrtController;
-  late TextEditingController firmaTelefonController;
-  late TextEditingController firmaEmailController;
-  late TextEditingController firmaWebsiteController;
+  // TextController
+  late TextEditingController firmaNameController =
+      TextEditingController(text: data.firma.name ?? "");
+  late TextEditingController firmaStrasseController =
+      TextEditingController(text: data.firma.strasse ?? "");
+  late TextEditingController firmaPlzController =
+      TextEditingController(text: data.firma.plz ?? "");
+  late TextEditingController firmaOrtController =
+      TextEditingController(text: data.firma.ort ?? "");
+  late TextEditingController firmaTelefonController =
+      TextEditingController(text: data.firma.telefon ?? "");
+  late TextEditingController firmaWebsiteController =
+      TextEditingController(text: data.firma.website ?? "");
+  late TextEditingController firmaEmailController =
+      TextEditingController(text: data.firma.email ?? "");
 
-  late TextEditingController kundeNameController;
-  late TextEditingController kundeStrasseController;
-  late TextEditingController kundePlzController;
-  late TextEditingController kundeOrtController;
-  late TextEditingController kundeTeleController;
-  late TextEditingController kundeEmailController;
+  late TextEditingController kundeNameController =
+      TextEditingController(text: data.kunde?.name ?? "");
+  late TextEditingController kundeStrasseController =
+      TextEditingController(text: data.kunde?.strasse ?? "");
+  late TextEditingController kundePlzController =
+      TextEditingController(text: data.kunde?.plz ?? "");
+  late TextEditingController kundeOrtController =
+      TextEditingController(text: data.kunde?.ort ?? "");
+  late TextEditingController kundeTeleController =
+      TextEditingController(text: data.kunde?.telefon ?? "");
+  late TextEditingController kundeEmailController =
+      TextEditingController(text: data.kunde?.email ?? "");
 
-  late TextEditingController monteurVornameController;
-  late TextEditingController monteurNachnameController;
-  late TextEditingController monteurTeleController;
-  late TextEditingController monteurEmailController;
+  late TextEditingController monteurVornameController =
+      TextEditingController(text: data.monteur?.vorname ?? "");
+  late TextEditingController monteurNachnameController =
+      TextEditingController(text: data.monteur?.nachname ?? "");
+  late TextEditingController monteurTeleController =
+      TextEditingController(text: data.monteur?.telefon ?? "");
+  late TextEditingController monteurEmailController =
+      TextEditingController(text: data.monteur?.email ?? "");
 
-  late TextEditingController baustelleStrasseController;
-  late TextEditingController baustellePlzController;
-  late TextEditingController baustelleOrtController;
+  late TextEditingController baustelleStrasseController =
+      TextEditingController(text: data.baustelle.strasse ?? "");
+  late TextEditingController baustellePlzController =
+      TextEditingController(text: data.baustelle.plz ?? "");
+  late TextEditingController baustelleOrtController =
+      TextEditingController(text: data.baustelle.ort ?? "");
 
   // ==================== PRIVATE ====================
   late SharedPreferences prefs;
