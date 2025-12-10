@@ -98,10 +98,9 @@ class _ReceiptContentState extends State<ReceiptContent> {
           SizedBox(height: 10),
           Center(
             child: Column(children: [
-              Text(
-                  "E-Mail: ${_screenInputController.baustelleStrasseController.text}",
+              Text("${_screenInputController.baustelleOrtController.text}",
                   style: TextStyle(fontSize: 15)),
-              Text("Tel: ${_screenInputController.baustellePlzController.text}",
+              Text("${_screenInputController.baustellePlzController.text}",
                   style: TextStyle(fontSize: 15)),
               Text(_screenInputController.baustelleOrtController.text,
                   style: TextStyle(fontSize: 15)),

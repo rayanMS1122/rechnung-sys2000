@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:reciepts/controller/screen_input_controller.dart';
 import 'package:reciepts/screens/screen_reciept.dart';
+import 'package:reciepts/screens/settings_screen.dart';
 import '../model/reciept_model.dart';
 
 class ScreenInput extends StatefulWidget {
@@ -42,6 +43,13 @@ class _ScreenInputState extends State<ScreenInput> {
           IconButton(
             icon: const Icon(Icons.clear),
             onPressed: controller.rechnungTextFielde.clear,
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                  context, MaterialPageRoute(builder: (_) => SettingsScreen()));
+            },
           ),
         ],
       ),

@@ -26,8 +26,8 @@ class NameEingebenScreen extends StatelessWidget {
       controller.data.kunde = Kunde(
         name: controller.kundeNameController.text.trim(),
         strasse: controller.kundeStrasseController.text.trim(),
-        plz: controller.kundPlzController.text.trim(),
-        ort: controller.kundOrtController.text.trim(),
+        plz: controller.kundePlzController.text.trim(),
+        ort: controller.kundeOrtController.text.trim(),
         telefon: controller.kundeTeleController.text.trim(),
         email: controller.kundeEmailController.text.trim(),
       );
@@ -116,7 +116,7 @@ class NameEingebenScreen extends StatelessWidget {
                   Expanded(
                     flex: 1,
                     child: TextField(
-                      controller: controller.kundPlzController,
+                      controller: controller.kundePlzController,
                       keyboardType: TextInputType.number,
                       textInputAction: TextInputAction.next,
                       decoration: _inputDecoration("PLZ", "12345"),
@@ -127,7 +127,7 @@ class NameEingebenScreen extends StatelessWidget {
                   Expanded(
                     flex: 2,
                     child: TextField(
-                      controller: controller.kundOrtController,
+                      controller: controller.kundeOrtController,
                       textInputAction: TextInputAction.next,
                       decoration: _inputDecoration("Ort", "Musterstadt"),
                       onChanged: (_) => updateKunde(),

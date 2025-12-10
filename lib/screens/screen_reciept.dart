@@ -11,6 +11,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:reciepts/controller/screen_input_controller.dart';
 import 'package:reciepts/controller/unterschrift_controller.dart';
+import 'package:reciepts/screens/settings_screen.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:path_provider/path_provider.dart';
@@ -240,12 +241,15 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                                   pw.Padding(
                                     padding: pw.EdgeInsets.all(11),
                                     child: pw.SizedBox(
-                                      height: 100,
-                                      width: 100,
-                                      child: pw.Image(pw.MemoryImage(
-                                          _unterschriftController
-                                              .kundePngBytes.value!)),
-                                    ),
+                                        height: 100,
+                                        width: 100,
+                                        child: _unterschriftController
+                                                    .kundePngBytes.value !=
+                                                null
+                                            ? pw.Image(pw.MemoryImage(
+                                                _unterschriftController
+                                                    .kundePngBytes.value!))
+                                            : pw.Text("")),
                                   )
                                 ]),
                             pw.Row(
@@ -254,12 +258,15 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                                   pw.Padding(
                                     padding: pw.EdgeInsets.all(11),
                                     child: pw.SizedBox(
-                                      height: 100,
-                                      width: 100,
-                                      child: pw.Image(pw.MemoryImage(
-                                          _unterschriftController
-                                              .monteurPngBytes.value!)),
-                                    ),
+                                        height: 100,
+                                        width: 100,
+                                        child: _unterschriftController
+                                                    .monteurPngBytes.value !=
+                                                null
+                                            ? pw.Image(pw.MemoryImage(
+                                                _unterschriftController
+                                                    .monteurPngBytes.value!))
+                                            : pw.Text("")),
                                   )
                                 ])
                           ]),
@@ -335,111 +342,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
-              showDialog(
-                context: context,
-                builder: (_) => AlertDialog(
-                  insetPadding:
-                      EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
-                  title:
-                      const Text('Einstellungen', textAlign: TextAlign.center),
-                  content: SizedBox(
-                    width: double.maxFinite,
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text("Firma Infos",
-                              style: TextStyle(fontWeight: FontWeight.bold)),
-                          SizedBox(height: 12.h),
-                          _buildSettingsTextField(
-                              _screenInputController.firmaNameController,
-                              "Firmenname"),
-                          _buildSettingsTextField(
-                              _screenInputController.firmaStrasseController,
-                              "Straße"),
-                          Row(
-                            children: [
-                              Expanded(
-                                  child: _buildSettingsTextField(
-                                      _screenInputController.firmaPlzController,
-                                      "PLZ")),
-                              SizedBox(width: 12.w),
-                              Expanded(
-                                  flex: 2,
-                                  child: _buildSettingsTextField(
-                                      _screenInputController.firmaOrtController,
-                                      "Ort")),
-                            ],
-                          ),
-                          _buildSettingsTextField(
-                              _screenInputController.firmaTelefonController,
-                              "Telefon"),
-                          _buildSettingsTextField(
-                              _screenInputController.firmaEmailController,
-                              "E-Mail"),
-                          _buildSettingsTextField(
-                              _screenInputController.firmaWebsiteController,
-                              "Website"),
-                          SizedBox(height: 20.h),
-                          const Divider(),
-                          const Text("Baustelle Infos",
-                              style: TextStyle(fontWeight: FontWeight.bold)),
-                          SizedBox(height: 12.h),
-                          _buildSettingsTextField(
-                              _screenInputController.baustelleStrasseController,
-                              "Straße"),
-                          Row(
-                            children: [
-                              Expanded(
-                                  child: _buildSettingsTextField(
-                                      _screenInputController
-                                          .baustellePlzController,
-                                      "PLZ")),
-                              SizedBox(width: 12.w),
-                              Expanded(
-                                  flex: 2,
-                                  child: _buildSettingsTextField(
-                                      _screenInputController
-                                          .baustelleOrtController,
-                                      "Ort")),
-                            ],
-                          ),
-                          SizedBox(height: 20.h),
-                          const Text("Logo ändern",
-                              style: TextStyle(fontWeight: FontWeight.bold)),
-                          SizedBox(height: 12.h),
-                          Center(
-                            child: ElevatedButton.icon(
-                              onPressed: () =>
-                                  _screenInputController.changeLogo(context),
-                              icon: Icon(Icons.image, size: 32.sp),
-                              label: const Text("Bild auswählen"),
-                              style: ElevatedButton.styleFrom(
-                                  // padding: EdgeInsets.symmetric(horizontal: EdgeInsets.symmetric(horizontal: 20.w, vertical: 14.h),
-                                  ),
-                            ),
-                          ),
-                          SizedBox(height: 10.h),
-                          TextButton(
-                            onPressed: _screenInputController.resetLogo,
-                            child: const Text("Standard-Logo wiederherstellen"),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Abbrechen'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('OK'),
-                    ),
-                  ],
-                ),
-              );
+              Navigator.push(
+                  context, MaterialPageRoute(builder: (_) => SettingsScreen()));
             },
           ),
         ],

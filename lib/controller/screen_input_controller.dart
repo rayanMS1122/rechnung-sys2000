@@ -11,30 +11,49 @@ class ScreenInputController extends GetxController {
   late CompanyData data;
 
   // TextController
-  late final TextEditingController firmaNameController;
-  late final TextEditingController firmaStrasseController;
-  late final TextEditingController firmaPlzController;
-  late final TextEditingController firmaOrtController;
-  late final TextEditingController firmaTelefonController;
-  late final TextEditingController firmaWebsiteController;
-  late final TextEditingController firmaEmailController;
+  late TextEditingController firmaNameController =
+      TextEditingController(text: data.firma.name ?? "");
+  late TextEditingController firmaStrasseController =
+      TextEditingController(text: data.firma.strasse ?? "");
+  late TextEditingController firmaPlzController =
+      TextEditingController(text: data.firma.plz ?? "");
+  late TextEditingController firmaOrtController =
+      TextEditingController(text: data.firma.ort ?? "");
+  late TextEditingController firmaTelefonController =
+      TextEditingController(text: data.firma.telefon ?? "");
+  late TextEditingController firmaWebsiteController =
+      TextEditingController(text: data.firma.website ?? "");
+  late TextEditingController firmaEmailController =
+      TextEditingController(text: data.firma.email ?? "");
 
-  late final TextEditingController kundeNameController;
-  late final TextEditingController kundeStrasseController;
-  late final TextEditingController kundPlzController;
-  late final TextEditingController kundOrtController;
-  late final TextEditingController kundeTeleController;
-  late final TextEditingController kundeEmailController;
+  late TextEditingController kundeNameController =
+      TextEditingController(text: data.kunde?.name ?? "");
+  late TextEditingController kundeStrasseController =
+      TextEditingController(text: data.kunde?.strasse ?? "");
+  late TextEditingController kundePlzController =
+      TextEditingController(text: data.kunde?.plz ?? "");
+  late TextEditingController kundeOrtController =
+      TextEditingController(text: data.kunde?.ort ?? "");
+  late TextEditingController kundeTeleController =
+      TextEditingController(text: data.kunde?.telefon ?? "");
+  late TextEditingController kundeEmailController =
+      TextEditingController(text: data.kunde?.email ?? "");
 
-  late final TextEditingController monteurVornameController;
-  late final TextEditingController monteurNachnameController;
-  late final TextEditingController monteurTeleController;
-  late final TextEditingController monteurEmailController;
+  late TextEditingController monteurVornameController =
+      TextEditingController(text: data.monteur?.vorname ?? "");
+  late TextEditingController monteurNachnameController =
+      TextEditingController(text: data.monteur?.nachname ?? "");
+  late TextEditingController monteurTeleController =
+      TextEditingController(text: data.monteur?.telefon ?? "");
+  late TextEditingController monteurEmailController =
+      TextEditingController(text: data.monteur?.email ?? "");
 
-  late final TextEditingController baustelleStrasseController;
-  late final TextEditingController baustellePlzController;
-  late final TextEditingController baustelleOrtController;
-
+  late TextEditingController baustelleStrasseController =
+      TextEditingController(text: data.baustelle.strasse ?? "");
+  late TextEditingController baustellePlzController =
+      TextEditingController(text: data.baustelle.plz ?? "");
+  late TextEditingController baustelleOrtController =
+      TextEditingController(text: data.baustelle.ort ?? "");
   final Rx<XFile> logo = XFile('').obs;
   final RxString logoPath = ''.obs; // Speichert den Pfad zum gespeicherten Logo
 
@@ -115,8 +134,8 @@ class ScreenInputController extends GetxController {
     kundeNameController = TextEditingController(text: data.kunde?.name ?? '');
     kundeStrasseController =
         TextEditingController(text: data.kunde?.strasse ?? '');
-    kundPlzController = TextEditingController(text: data.kunde?.plz ?? '');
-    kundOrtController = TextEditingController(text: data.kunde?.ort ?? '');
+    kundePlzController = TextEditingController(text: data.kunde?.plz ?? '');
+    kundeOrtController = TextEditingController(text: data.kunde?.ort ?? '');
     kundeTeleController =
         TextEditingController(text: data.kunde?.telefon ?? '');
     kundeEmailController = TextEditingController(text: data.kunde?.email ?? '');
@@ -151,10 +170,10 @@ class ScreenInputController extends GetxController {
         () => _saveToPrefs('kunde_name', kundeNameController.text));
     kundeStrasseController.addListener(
         () => _saveToPrefs('kunde_strasse', kundeStrasseController.text));
-    kundPlzController
-        .addListener(() => _saveToPrefs('kunde_plz', kundPlzController.text));
-    kundOrtController
-        .addListener(() => _saveToPrefs('kunde_ort', kundOrtController.text));
+    kundePlzController
+        .addListener(() => _saveToPrefs('kunde_plz', kundePlzController.text));
+    kundeOrtController
+        .addListener(() => _saveToPrefs('kunde_ort', kundeOrtController.text));
     kundeTeleController.addListener(
         () => _saveToPrefs('kunde_telefon', kundeTeleController.text));
     kundeEmailController.addListener(
