@@ -4,41 +4,60 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:reciepts/models/baustelle.dart';
+import 'package:reciepts/models/kunde.dart';
+import 'package:reciepts/models/monteur.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:reciepts/model/firma_model.dart';
-import 'package:reciepts/model/reciept_model.dart';
+import 'package:reciepts/models/firma_model.dart';
+import 'package:reciepts/models/reciept_model.dart';
+import 'package:reciepts/database/database_helper.dart';
 
 class ScreenInputController extends GetxController {
-  late CompanyData data = CompanyData(
-    firma: Firma(
-      name: "",
-      strasse: "",
-      plz: "",
-      ort: "",
-      telefon: "",
-      email: "",
-      website: "",
-    ),
-    baustelle: Baustelle(
-      strasse: "",
-      plz: "",
-      ort: "",
-    ),
-    kunde: Kunde(
-      name: "",
-      strasse: "",
-      plz: "",
-      ort: "",
-      telefon: "",
-      email: "",
-    ),
-    monteur: Monteur(
-      vorname: "",
-      nachname: "",
-      telefon: "",
-    ),
-  );
+  // ==================== DATABASE ====================
+  final _dbHelper = DatabaseHelper.instance;
 
+  // ==================== LISTEN FÜR DROPDOWN/AUSWAHL ====================
+  final RxList<Map<String, dynamic>> firmenListe = <Map<String, dynamic>>[].obs;
+  final RxList<Map<String, dynamic>> kundenListe = <Map<String, dynamic>>[].obs;
+  final RxList<Map<String, dynamic>> monteureListe =
+      <Map<String, dynamic>>[].obs;
+  final RxList<Map<String, dynamic>> baustellenListe =
+      <Map<String, dynamic>>[].obs;
+
+  // ==================== REACTIVE OBJEKTE ====================
+  final Rx<Firma> firma = Firma(
+    name: "",
+    strasse: "",
+    plz: "",
+    ort: "",
+    telefon: "",
+    email: "",
+    website: "",
+  ).obs;
+
+  Rx<Kunde> kunde = Kunde(
+    name: "",
+    strasse: "",
+    plz: "",
+    ort: "",
+    telefon: "",
+    email: "",
+  ).obs;
+
+  final Rx<Monteur> monteur = Monteur(
+    vorname: "",
+    nachname: "",
+    telefon: "",
+  ).obs;
+
+  late Rx<Baustelle> baustelle = Baustelle(
+    strasse: "",
+    plz: "",
+    ort: "",
+    kundeId: kunde.value.id ?? 0,
+  ).obs;
+
+  // ==================== SONSTIGES ====================
   final Rx<XFile> logo = XFile('').obs;
   final RxString logoPath = ''.obs;
   final rechnungTextFielde = <ReceiptData>[].obs;
@@ -46,48 +65,48 @@ class ScreenInputController extends GetxController {
 
   // TextController
   late TextEditingController firmaNameController =
-      TextEditingController(text: data.firma.name ?? "");
+      TextEditingController(text: firma.value.name ?? "");
   late TextEditingController firmaStrasseController =
-      TextEditingController(text: data.firma.strasse ?? "");
+      TextEditingController(text: firma.value.strasse ?? "");
   late TextEditingController firmaPlzController =
-      TextEditingController(text: data.firma.plz ?? "");
+      TextEditingController(text: firma.value.plz ?? "");
   late TextEditingController firmaOrtController =
-      TextEditingController(text: data.firma.ort ?? "");
+      TextEditingController(text: firma.value.ort ?? "");
   late TextEditingController firmaTelefonController =
-      TextEditingController(text: data.firma.telefon ?? "");
+      TextEditingController(text: firma.value.telefon ?? "");
   late TextEditingController firmaWebsiteController =
-      TextEditingController(text: data.firma.website ?? "");
+      TextEditingController(text: firma.value.website ?? "");
   late TextEditingController firmaEmailController =
-      TextEditingController(text: data.firma.email ?? "");
+      TextEditingController(text: firma.value.email ?? "");
 
   late TextEditingController kundeNameController =
-      TextEditingController(text: data.kunde?.name ?? "");
+      TextEditingController(text: kunde.value?.name ?? "");
   late TextEditingController kundeStrasseController =
-      TextEditingController(text: data.kunde?.strasse ?? "");
+      TextEditingController(text: kunde.value?.strasse ?? "");
   late TextEditingController kundePlzController =
-      TextEditingController(text: data.kunde?.plz ?? "");
+      TextEditingController(text: kunde.value?.plz ?? "");
   late TextEditingController kundeOrtController =
-      TextEditingController(text: data.kunde?.ort ?? "");
+      TextEditingController(text: kunde?.value.ort ?? "");
   late TextEditingController kundeTeleController =
-      TextEditingController(text: data.kunde?.telefon ?? "");
+      TextEditingController(text: kunde.value?.telefon ?? "");
   late TextEditingController kundeEmailController =
-      TextEditingController(text: data.kunde?.email ?? "");
+      TextEditingController(text: kunde.value?.email ?? "");
 
   late TextEditingController monteurVornameController =
-      TextEditingController(text: data.monteur?.vorname ?? "");
+      TextEditingController(text: monteur.value?.vorname ?? "");
   late TextEditingController monteurNachnameController =
-      TextEditingController(text: data.monteur?.nachname ?? "");
+      TextEditingController(text: monteur.value?.nachname ?? "");
   late TextEditingController monteurTeleController =
-      TextEditingController(text: data.monteur?.telefon ?? "");
+      TextEditingController(text: monteur.value?.telefon ?? "");
   late TextEditingController monteurEmailController =
-      TextEditingController(text: data.monteur?.email ?? "");
+      TextEditingController(text: monteur.value?.email ?? "");
 
   late TextEditingController baustelleStrasseController =
-      TextEditingController(text: data.baustelle.strasse ?? "");
+      TextEditingController(text: baustelle.value.strasse ?? "");
   late TextEditingController baustellePlzController =
-      TextEditingController(text: data.baustelle.plz ?? "");
+      TextEditingController(text: baustelle.value.plz ?? "");
   late TextEditingController baustelleOrtController =
-      TextEditingController(text: data.baustelle.ort ?? "");
+      TextEditingController(text: baustelle.value.ort ?? "");
 
   // ==================== PRIVATE ====================
   late SharedPreferences prefs;
@@ -97,12 +116,11 @@ class ScreenInputController extends GetxController {
   // ==================== LIFECYCLE ====================
   @override
   void onInit() async {
-    // 1. SharedPreferences einmalig laden (einziger Ort!)
     prefs = await SharedPreferences.getInstance();
-    await prefs.reload(); // WICHTIG für iOS!
+    await prefs.reload();
 
-    // 2. Daten laden + Controller initialisieren
     await _loadAllDataFromStorage();
+    await _loadAllDataFromDatabase();
     _setupListeners();
 
     super.onInit();
@@ -114,36 +132,51 @@ class ScreenInputController extends GetxController {
     super.onClose();
   }
 
+  // ==================== DATEN AUS DATABASE LADEN ====================
+  Future<void> _loadAllDataFromDatabase() async {
+    firmenListe.value = await _dbHelper.queryAllFirmen();
+    kundenListe.value = await _dbHelper.queryAllKunden();
+    monteureListe.value = await _dbHelper.queryAllMonteure();
+    baustellenListe.value = await _dbHelper.queryAllBaustellen();
+  }
+
+  // ==================== DATEN LADEN (SharedPreferences) ====================
   Future<void> _loadAllDataFromStorage() async {
-    data = CompanyData(
-      firma: Firma(
-        name: prefs.getString('firma_name') ?? "sys2000",
-        strasse: prefs.getString('firma_strasse') ?? "Am Kühlturm 3a",
-        plz: prefs.getString('firma_plz') ?? "44536",
-        ort: prefs.getString('firma_ort') ?? "Lünen",
-        telefon: prefs.getString('firma_telefon') ?? "0231 9851550",
-        email: prefs.getString('firma_email') ?? "info@system-2000.de",
-        website: prefs.getString('firma_website') ?? "https://system2000.de/",
-      ),
-      baustelle: Baustelle(
-        strasse: prefs.getString('baustelle_strasse') ?? "Berliner Str. 17",
-        plz: prefs.getString('baustelle_plz') ?? "10176",
-        ort: prefs.getString('baustelle_ort') ?? "Berlin",
-      ),
-      monteur: Monteur(
-        vorname: prefs.getString('monteur_vorname') ?? "",
-        nachname: prefs.getString('monteur_nachname') ?? "",
-        telefon: prefs.getString('monteur_telefon') ?? "",
-        email: prefs.getString('monteur_email') ?? "",
-      ),
-      kunde: Kunde(
-        name: prefs.getString('kunde_name') ?? "",
-        strasse: prefs.getString('kunde_strasse') ?? "",
-        plz: prefs.getString('kunde_plz') ?? "",
-        ort: prefs.getString('kunde_ort') ?? "",
-        telefon: prefs.getString('kunde_telefon') ?? "",
-        email: prefs.getString('kunde_email') ?? "",
-      ),
+    // Firma
+    firma.value = Firma(
+      name: prefs.getString('firma_name') ?? "sys2000",
+      strasse: prefs.getString('firma_strasse') ?? "Am Kühlturm 3a",
+      plz: prefs.getString('firma_plz') ?? "44536",
+      ort: prefs.getString('firma_ort') ?? "Lünen",
+      telefon: prefs.getString('firma_telefon') ?? "0231 9851550",
+      email: prefs.getString('firma_email') ?? "info@system-2000.de",
+      website: prefs.getString('firma_website') ?? "https://system2000.de/",
+    );
+
+    // Baustelle
+    baustelle.value = Baustelle(
+      strasse: prefs.getString('baustelle_strasse') ?? "Berliner Str. 17",
+      plz: prefs.getString('baustelle_plz') ?? "10176",
+      ort: prefs.getString('baustelle_ort') ?? "Berlin",
+      kundeId: kunde.value.id ?? 0,
+    );
+
+    // Monteur
+    monteur.value = Monteur(
+      vorname: prefs.getString('monteur_vorname') ?? "",
+      nachname: prefs.getString('monteur_nachname') ?? "",
+      telefon: prefs.getString('monteur_telefon') ?? "",
+      email: prefs.getString('monteur_email') ?? "",
+    );
+
+    // Kunde
+    kunde.value = Kunde(
+      name: prefs.getString('kunde_name') ?? "",
+      strasse: prefs.getString('kunde_strasse') ?? "",
+      plz: prefs.getString('kunde_plz') ?? "",
+      ort: prefs.getString('kunde_ort') ?? "",
+      telefon: prefs.getString('kunde_telefon') ?? "",
+      email: prefs.getString('kunde_email') ?? "",
     );
 
     _initControllers();
@@ -170,36 +203,159 @@ class ScreenInputController extends GetxController {
   }
 
   void _initControllers() {
-    firmaNameController = TextEditingController(text: data.firma.name);
-    firmaStrasseController = TextEditingController(text: data.firma.strasse);
-    firmaPlzController = TextEditingController(text: data.firma.plz);
-    firmaOrtController = TextEditingController(text: data.firma.ort);
-    firmaTelefonController = TextEditingController(text: data.firma.telefon);
-    firmaEmailController = TextEditingController(text: data.firma.email);
-    firmaWebsiteController = TextEditingController(text: data.firma.website);
+    firmaNameController = TextEditingController(text: firma.value.name);
+    firmaStrasseController = TextEditingController(text: firma.value.strasse);
+    firmaPlzController = TextEditingController(text: firma.value.plz);
+    firmaOrtController = TextEditingController(text: firma.value.ort);
+    firmaTelefonController = TextEditingController(text: firma.value.telefon);
+    firmaEmailController = TextEditingController(text: firma.value.email);
+    firmaWebsiteController = TextEditingController(text: firma.value.website);
 
-    kundeNameController = TextEditingController(text: data.kunde?.name ?? '');
-    kundeStrasseController =
-        TextEditingController(text: data.kunde?.strasse ?? '');
-    kundePlzController = TextEditingController(text: data.kunde?.plz ?? '');
-    kundeOrtController = TextEditingController(text: data.kunde?.ort ?? '');
-    kundeTeleController =
-        TextEditingController(text: data.kunde?.telefon ?? '');
-    kundeEmailController = TextEditingController(text: data.kunde?.email ?? '');
+    kundeNameController = TextEditingController(text: kunde.value.name);
+    kundeStrasseController = TextEditingController(text: kunde.value.strasse);
+    kundePlzController = TextEditingController(text: kunde.value.plz);
+    kundeOrtController = TextEditingController(text: kunde.value.ort);
+    kundeTeleController = TextEditingController(text: kunde.value.telefon);
+    kundeEmailController = TextEditingController(text: kunde.value.email);
 
     monteurVornameController =
-        TextEditingController(text: data.monteur?.vorname ?? '');
+        TextEditingController(text: monteur.value.vorname);
     monteurNachnameController =
-        TextEditingController(text: data.monteur?.nachname ?? '');
-    monteurTeleController =
-        TextEditingController(text: data.monteur?.telefon ?? '');
+        TextEditingController(text: monteur.value.nachname);
+    monteurTeleController = TextEditingController(text: monteur.value.telefon);
     monteurEmailController =
-        TextEditingController(text: data.monteur?.email ?? '');
-
+        TextEditingController(text: monteur.value.email ?? "");
+    updateMonteurControllers();
+    updateKundeControllers();
     baustelleStrasseController =
-        TextEditingController(text: data.baustelle.strasse);
-    baustellePlzController = TextEditingController(text: data.baustelle.plz);
-    baustelleOrtController = TextEditingController(text: data.baustelle.ort);
+        TextEditingController(text: baustelle.value.strasse);
+    baustellePlzController = TextEditingController(text: baustelle.value.plz);
+    baustelleOrtController = TextEditingController(text: baustelle.value.ort);
+  }
+
+  // ==================== DATABASE FUNKTIONEN ====================
+
+  // FIRMA
+  Future<void> addFirmaToDatabase() async {
+    await _dbHelper.insertFirma({
+      'name': firma.value.name,
+      'strasse': firma.value.strasse,
+      'plz': firma.value.plz,
+      'ort': firma.value.ort,
+      'telefon': firma.value.telefon,
+      'email': firma.value.email,
+      'website': firma.value.website,
+    });
+    await _loadAllDataFromDatabase();
+    Get.snackbar("Erfolg", "Firma wurde gespeichert!");
+  }
+
+  Future<void> selectFirmaFromDatabase(int id) async {
+    final firmaData = await _dbHelper.queryFirmaById(id);
+    if (firmaData != null) {
+      firma.value = Firma(
+        id: firmaData['id'],
+        name: firmaData['name'],
+        strasse: firmaData['strasse'],
+        plz: firmaData['plz'],
+        ort: firmaData['ort'],
+        telefon: firmaData['telefon'],
+        email: firmaData['email'],
+        website: firmaData['website'],
+      );
+      _initControllers();
+      Get.snackbar("Erfolg", "Firma wurde geladen!");
+    }
+  }
+
+  // KUNDE
+  Future<void> addKundeToDatabase() async {
+    await _dbHelper.insertKunde({
+      'name': kunde.value.name,
+      'strasse': kunde.value.strasse,
+      'plz': kunde.value.plz,
+      'ort': kunde.value.ort,
+      'telefon': kunde.value.telefon,
+      'email': kunde.value.email,
+    });
+    await _loadAllDataFromDatabase();
+    Get.snackbar("Erfolg", "Kunde wurde gespeichert!");
+  }
+
+  // MONTEUR
+  Future<void> addMonteurToDatabase() async {
+    await _dbHelper.insertMonteur({
+      'vorname': monteur.value.vorname,
+      'nachname': monteur.value.nachname,
+      'telefon': monteur.value.telefon,
+      'email': monteur.value.email,
+    });
+    await _loadAllDataFromDatabase();
+    Get.snackbar("Erfolg", "Monteur wurde gespeichert!");
+  }
+
+  Future<void> selectMonteurFromDatabase(int id) async {
+    final monteurData = await _dbHelper.queryMonteurById(id);
+    if (monteurData != null) {
+      monteur.value = Monteur(
+        id: monteurData['id'],
+        vorname: monteurData['vorname'],
+        nachname: monteurData['nachname'],
+        telefon: monteurData['telefon'],
+        email: monteurData['email'],
+      );
+
+      // Das ist der entscheidende Aufruf!
+      updateMonteurControllers();
+
+      Get.snackbar("Erfolg", "Monteur wurde geladen!");
+    }
+  }
+
+  Future<void> selectKundeFromDatabase(int id) async {
+    final kundeData = await _dbHelper.queryKundeById(id);
+    if (kundeData != null) {
+      kunde.value = Kunde(
+        id: kundeData['id'],
+        name: kundeData['name'],
+        strasse: kundeData['strasse'],
+        plz: kundeData['plz'],
+        ort: kundeData['ort'],
+        telefon: kundeData['telefon'],
+        email: kundeData['email'],
+      );
+
+      // Das ist der entscheidende Aufruf!
+      updateKundeControllers();
+
+      Get.snackbar("Erfolg", "Kunde wurde geladen!");
+    }
+  }
+
+  // BAUSTELLE
+  Future<void> addBaustelleToDatabase() async {
+    await _dbHelper.insertBaustelle({
+      'strasse': baustelle.value.strasse,
+      'plz': baustelle.value.plz,
+      'ort': baustelle.value.ort,
+    });
+    await _loadAllDataFromDatabase();
+    Get.snackbar("Erfolg", "Baustelle wurde gespeichert!");
+  }
+
+  Future<void> selectBaustelleFromDatabase(int id) async {
+    final baustelleData = await _dbHelper.queryBaustelleById(id);
+    if (baustelleData != null) {
+      baustelle.value = Baustelle(
+        id: baustelleData['id'],
+        strasse: baustelleData['strasse'],
+        plz: baustelleData['plz'],
+        ort: baustelleData['ort'],
+        kundeId: kunde.value.id ?? 0,
+      );
+      _initControllers();
+      Get.snackbar("Erfolg", "Baustelle wurde geladen!");
+    }
   }
 
   // ==================== DEBOUNCED SAVE ====================
@@ -208,99 +364,97 @@ class ScreenInputController extends GetxController {
     _debounceTimer = Timer(const Duration(milliseconds: 800), () async {
       final trimmedValue = value.trim();
       await prefs.setString(key, trimmedValue);
-
-      // DIES IST DIE MAGISCHE ZEILE FÜR iOS!!!
-      await prefs.reload(); // ← zwingt sofortigen Refresh des Caches
+      await prefs.reload();
     });
   }
 
-  // ==================== ALLE LISTENER (Auto-Save) ====================
+  // ==================== LISTENER (Auto-Save) ====================
   void _setupListeners() {
     // Monteur
     monteurVornameController.addListener(() {
-      data.monteur!.vorname = monteurVornameController.text;
+      monteur.value.vorname = monteurVornameController.text;
       _debouncedSave('monteur_vorname', monteurVornameController.text);
     });
     monteurNachnameController.addListener(() {
-      data.monteur!.nachname = monteurNachnameController.text;
+      monteur.value.nachname = monteurNachnameController.text;
       _debouncedSave('monteur_nachname', monteurNachnameController.text);
     });
     monteurTeleController.addListener(() {
-      data.monteur!.telefon = monteurTeleController.text;
+      monteur.value.telefon = monteurTeleController.text;
       _debouncedSave('monteur_telefon', monteurTeleController.text);
     });
     monteurEmailController.addListener(() {
-      data.monteur!.email = monteurEmailController.text;
+      monteur.value.email = monteurEmailController.text;
       _debouncedSave('monteur_email', monteurEmailController.text);
     });
 
     // Kunde
     kundeNameController.addListener(() {
-      data.kunde!.name = kundeNameController.text;
+      kunde.value.name = kundeNameController.text;
       _debouncedSave('kunde_name', kundeNameController.text);
     });
     kundeStrasseController.addListener(() {
-      data.kunde!.strasse = kundeStrasseController.text;
+      kunde.value.strasse = kundeStrasseController.text;
       _debouncedSave('kunde_strasse', kundeStrasseController.text);
     });
     kundePlzController.addListener(() {
-      data.kunde!.plz = kundePlzController.text;
+      kunde.value.plz = kundePlzController.text;
       _debouncedSave('kunde_plz', kundePlzController.text);
     });
     kundeOrtController.addListener(() {
-      data.kunde!.ort = kundeOrtController.text;
+      kunde.value.ort = kundeOrtController.text;
       _debouncedSave('kunde_ort', kundeOrtController.text);
     });
     kundeTeleController.addListener(() {
-      data.kunde!.telefon = kundeTeleController.text;
+      kunde.value.telefon = kundeTeleController.text;
       _debouncedSave('kunde_telefon', kundeTeleController.text);
     });
     kundeEmailController.addListener(() {
-      data.kunde!.email = kundeEmailController.text;
+      kunde.value.email = kundeEmailController.text;
       _debouncedSave('kunde_email', kundeEmailController.text);
     });
 
     // Baustelle
     baustelleStrasseController.addListener(() {
-      data.baustelle.strasse = baustelleStrasseController.text;
+      baustelle.value.strasse = baustelleStrasseController.text;
       _debouncedSave('baustelle_strasse', baustelleStrasseController.text);
     });
     baustellePlzController.addListener(() {
-      data.baustelle.plz = baustellePlzController.text;
+      baustelle.value.plz = baustellePlzController.text;
       _debouncedSave('baustelle_plz', baustellePlzController.text);
     });
     baustelleOrtController.addListener(() {
-      data.baustelle.ort = baustelleOrtController.text;
+      baustelle.value.ort = baustelleOrtController.text;
       _debouncedSave('baustelle_ort', baustelleOrtController.text);
     });
 
-    // Firma (falls du sie bearbeitbar machst)
+    // Firma
     firmaNameController.addListener(() {
-      data.firma.name = firmaNameController.text;
+      firma.value.name = firmaNameController.text;
       _debouncedSave('firma_name', firmaNameController.text);
     });
     firmaStrasseController.addListener(() {
-      data.firma.strasse = firmaStrasseController.text;
+      firma.value.strasse = firmaStrasseController.text;
       _debouncedSave('firma_strasse', firmaStrasseController.text);
     });
     firmaPlzController.addListener(() {
-      data.firma.plz = firmaPlzController.text;
+      firma.value.plz = firmaPlzController.text;
       _debouncedSave('firma_plz', firmaPlzController.text);
     });
     firmaOrtController.addListener(() {
-      data.firma.ort = firmaOrtController.text;
+      firma.value.ort = firmaOrtController.text;
       _debouncedSave('firma_ort', firmaOrtController.text);
     });
     firmaTelefonController.addListener(() {
-      data.firma.telefon = firmaTelefonController.text;
+      firma.value.telefon = firmaTelefonController.text;
       _debouncedSave('firma_telefon', firmaTelefonController.text);
     });
     firmaEmailController.addListener(() {
-      data.firma.email = firmaEmailController.text;
+      firma.value.email = firmaEmailController.text;
       _debouncedSave('firma_email', firmaEmailController.text);
     });
     firmaWebsiteController.addListener(() {
-      data.firma.website = firmaWebsiteController.text;
+      firma.value.website = firmaWebsiteController.text;
       _debouncedSave('firma_website', firmaWebsiteController.text);
     });
   }
@@ -347,5 +501,23 @@ class ScreenInputController extends GetxController {
       bezeichnung: '',
       einzelPreis: 0.0,
     ));
+  }
+
+  // Aktualisiert alle TextController für Monteur
+  void updateMonteurControllers() {
+    monteurVornameController.text = monteur.value.vorname ?? '';
+    monteurNachnameController.text = monteur.value.nachname ?? '';
+    monteurTeleController.text = monteur.value.telefon ?? '';
+    monteurEmailController.text = monteur.value.email ?? '';
+  }
+
+  // Aktualisiert alle TextController für Kunde
+  void updateKundeControllers() {
+    kundeNameController.text = kunde.value.name ?? '';
+    kundeStrasseController.text = kunde.value.strasse ?? '';
+    kundePlzController.text = kunde.value.plz ?? '';
+    kundeOrtController.text = kunde.value.ort ?? '';
+    kundeTeleController.text = kunde.value.telefon ?? '';
+    kundeEmailController.text = kunde.value.email ?? '';
   }
 }

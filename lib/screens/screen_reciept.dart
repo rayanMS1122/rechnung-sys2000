@@ -14,7 +14,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:path_provider/path_provider.dart';
 import '../widgets/content.dart';
-import '../model/reciept_model.dart';
+import '../models/reciept_model.dart';
 
 class ReceiptScreen extends StatefulWidget {
   final List<ReceiptData> receiptData;

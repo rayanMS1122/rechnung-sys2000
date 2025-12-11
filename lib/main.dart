@@ -7,6 +7,7 @@ import 'package:get/instance_manager.dart';
 import 'package:intl/intl.dart';
 import 'package:reciepts/controller/screen_input_controller.dart';
 import 'package:reciepts/controller/unterschrift_controller.dart';
+import 'package:reciepts/database/database_helper.dart';
 import 'package:reciepts/screens/name_eingeben_screen.dart';
 
 void main() async {

@@ -8,7 +8,7 @@ import 'package:reciepts/controller/unterschrift_controller.dart';
 import 'package:reciepts/widgets/reciept_row.dart';
 import 'package:reciepts/screens/unterschrft_screen.dart';
 
-import '../model/reciept_model.dart';
+import '../models/reciept_model.dart';
 import 'package:signature/signature.dart';
 
 class ReceiptContent extends StatefulWidget {
@@ -50,67 +50,65 @@ class _ReceiptContentState extends State<ReceiptContent> {
           Center(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-              child: Obx(
-                () => _screenInputController.logo.value != null
-                    ? Image.file(
-                        File(_screenInputController.logo.value!.path),
-                        fit: BoxFit.fitWidth,
-                        height: 100,
-                      )
-                    : const SizedBox.shrink(),
-              ),
+              child: Obx(() {
+                final logoFile = _screenInputController.logo.value;
+                if (logoFile.path.isNotEmpty &&
+                    File(logoFile.path).existsSync()) {
+                  return Image.file(
+                    File(logoFile.path),
+                    fit: BoxFit.fitWidth,
+                    height: 100,
+                  );
+                }
+                return const SizedBox.shrink();
+              }),
             ),
           ),
           const SizedBox(height: 30),
 
-          // Firma Section
+          // Firma Section → jetzt mit Obx und firma.value
           _buildSectionTitle("Firma"),
           const SizedBox(height: 10),
-          _buildCenteredText(
-            _screenInputController.firmaNameController.text,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
+          Obx(() => _buildCenteredText(
+                _screenInputController.firma.value.name,
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+              )),
           const SizedBox(height: 8),
-          _buildCenteredText(
-            _screenInputController.firmaStrasseController.text,
-            fontSize: 15,
-          ),
+          Obx(() =>
+              _buildCenteredText(_screenInputController.firma.value.strasse)),
           const SizedBox(height: 12),
           Center(
-            child: Column(
-              children: [
-                _buildInfoText(
-                  "E-Mail: ${_screenInputController.firmaEmailController.text}",
-                ),
-                _buildInfoText(
-                  "Tel: ${_screenInputController.firmaTelefonController.text}",
-                ),
-                _buildInfoText(
-                  _screenInputController.firmaWebsiteController.text,
-                ),
-              ],
-            ),
+            child: Obx(() => Column(
+                  children: [
+                    _buildInfoText(
+                        "E-Mail: ${_screenInputController.firma.value.email}"),
+                    _buildInfoText(
+                        "Tel: ${_screenInputController.firma.value.telefon}"),
+                    if (_screenInputController.firma.value.website.isNotEmpty)
+                      _buildInfoText(
+                          _screenInputController.firma.value.website),
+                  ],
+                )),
           ),
           const SizedBox(height: 30),
-
-          // Baustelle Section
+          // Baustelle Section → jetzt korrekt mit baustelle.value
           _buildSectionTitle("Baustelle Infos"),
           const SizedBox(height: 10),
           Center(
-            child: Column(
-              children: [
-                _buildInfoText(
-                  _screenInputController.baustelleOrtController.text,
-                ),
-                _buildInfoText(
-                  _screenInputController.baustellePlzController.text,
-                ),
-                _buildInfoText(
-                  _screenInputController.baustelleOrtController.text,
-                ),
-              ],
-            ),
+            child: Obx(() => Column(
+                  children: [
+                    // if (_screenInputController
+                    // .baustelle.value.strasse.isNotEmpty)
+                    // _buildInfoText(
+                    // _screenInputController.baustelle.value.strasse),
+                    // if (_screenInputController.baustelle.value.plz.isNotEmpty ||
+                    //     _screenInputController.baustelle.value.plz != null)
+                    //   _buildInfoText(
+                    //       "${_screenInputController.baustelle.value ?? ""} ${_screenInputController.baustelle.value.ort ?? ""}"),
+                    // Optional: Nur Ort extra, falls du PLZ+Ort zusammen willst
+                  ],
+                )),
           ),
           const SizedBox(height: 33),
 
@@ -149,7 +147,7 @@ class _ReceiptContentState extends State<ReceiptContent> {
           const SizedBox(height: 10),
           const Divider(),
 
-          // Total Amount
+// Total Amount
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Row(
@@ -158,17 +156,12 @@ class _ReceiptContentState extends State<ReceiptContent> {
                 const SizedBox(),
                 const Text(
                   "Gesamtbetrag:",
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                 ),
                 Text(
                   "€ ${gesamtBetrag.toStringAsFixed(2)}",
                   style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
+                      fontSize: 14, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
