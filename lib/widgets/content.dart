@@ -98,14 +98,14 @@ class _ReceiptContentState extends State<ReceiptContent> {
           Center(
             child: Obx(() => Column(
                   children: [
-                    // if (_screenInputController
-                    // .baustelle.value.strasse.isNotEmpty)
-                    // _buildInfoText(
-                    // _screenInputController.baustelle.value.strasse),
-                    // if (_screenInputController.baustelle.value.plz.isNotEmpty ||
-                    //     _screenInputController.baustelle.value.plz != null)
-                    //   _buildInfoText(
-                    //       "${_screenInputController.baustelle.value ?? ""} ${_screenInputController.baustelle.value.ort ?? ""}"),
+                    if (_screenInputController
+                        .baustelle.value.strasse.isNotEmpty)
+                      _buildInfoText(
+                          _screenInputController.baustelle.value.strasse),
+                    if (_screenInputController.baustelle.value.plz.isNotEmpty ||
+                        _screenInputController.baustelle.value.plz != null)
+                      _buildInfoText(
+                          "${_screenInputController.baustelle.value.plz} ${_screenInputController.baustelle.value.ort ?? ""}"),
                     // Optional: Nur Ort extra, falls du PLZ+Ort zusammen willst
                   ],
                 )),
