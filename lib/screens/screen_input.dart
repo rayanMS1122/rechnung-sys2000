@@ -20,6 +20,7 @@ class _ScreenInputState extends State<ScreenInput> {
   final _formKey = GlobalKey<FormState>();
   final ScreenInputController _controller = Get.find();
   final UnterschriftController _unterschriftController = Get.find();
+  final ScrollController _scrollController = ScrollController();
 
   void _submitForm() {
     if (_formKey.currentState!.validate()) {
@@ -39,6 +40,17 @@ class _ScreenInputState extends State<ScreenInput> {
         (_unterschriftController.kundePngBytes.value ?? []).isNotEmpty ||
             (_unterschriftController.monteurPngBytes.value ?? []).isNotEmpty;
     return enable || !hasSignature;
+  }
+
+  void scrollToEnd() {
+    if (_scrollController.hasClients) {
+      _scrollController.position.maxScrollExtent;
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 222),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   @override
@@ -73,6 +85,8 @@ class _ScreenInputState extends State<ScreenInput> {
               Expanded(
                 child: Obx(() => editingEnabled
                     ? ListView.builder(
+                        shrinkWrap: true,
+                        controller: _scrollController,
                         itemCount: _controller.rechnungTextFielde.length,
                         itemBuilder: (context, index) {
                           return Card(
@@ -227,7 +241,11 @@ class _ScreenInputState extends State<ScreenInput> {
                     ? SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: _controller.addNewTextFields,
+                          onPressed: () {
+                            _controller.addNewTextFields();
+                            scrollToEnd();
+                            setState(() {});
+                          },
                           style: ElevatedButton.styleFrom(
                             padding: EdgeInsets.symmetric(
                                 horizontal: 32.w, vertical: 16.h),

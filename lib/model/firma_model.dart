@@ -1,5 +1,3 @@
-/// --- Modelle ---
-
 class Firma {
   String name;
   String strasse;
@@ -133,14 +131,14 @@ class Baustelle {
 
 class CompanyData {
   Firma firma;
-  Kunde? kunde; // optional
-  Monteur? monteur; // neu: Monteur ist jetzt auch dabei
+  Kunde? kunde;
+  Monteur? monteur;
   Baustelle baustelle;
 
   CompanyData({
     required this.firma,
     this.kunde,
-    this.monteur, // kann null sein, falls noch keiner ausgewählt
+    this.monteur,
     required this.baustelle,
   });
 

@@ -13,7 +13,7 @@ import 'package:reciepts/screens/settings_screen.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:path_provider/path_provider.dart';
-import '../content.dart';
+import '../widgets/content.dart';
 import '../model/reciept_model.dart';
 
 class ReceiptScreen extends StatefulWidget {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -8,8 +9,13 @@ import 'package:reciepts/controller/screen_input_controller.dart';
 import 'package:reciepts/controller/unterschrift_controller.dart';
 import 'package:reciepts/screens/name_eingeben_screen.dart';
 
-void main() {
-  WidgetsFlutterBinding.ensureInitialized(); // 👈 REQUIRED before using plugins
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitUp,
+  ]);
   Get.put(UnterschriftController());
   Get.put(ScreenInputController());
   runApp(const MyApp());
