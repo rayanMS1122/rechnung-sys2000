@@ -17,7 +17,12 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
 
-    return await openDatabase(path, version: 1, onCreate: _createDB);
+    return await openDatabase(
+      path,
+      version: 1,
+      onCreate: _createDB,
+      onUpgrade: _onUpgrade,
+    );
   }
 
   Future _createDB(Database db, int version) async {
@@ -68,6 +73,77 @@ class DatabaseHelper {
         ort TEXT
       )
     ''');
+    await db.execute('''
+  CREATE TABLE einstellungen (
+    id INTEGER PRIMARY KEY CHECK (id = 1),  -- Nur eine Zeile erlauben
+    firma_name TEXT,
+    firma_strasse TEXT,
+    firma_plz TEXT,
+    firma_ort TEXT,
+    firma_telefon TEXT,
+    firma_email TEXT,
+    firma_website TEXT,
+    
+    baustelle_strasse TEXT,
+    baustelle_plz TEXT,
+    baustelle_ort TEXT,
+    
+    logo_path TEXT,
+    enable_editing INTEGER DEFAULT 0  -- 0 = false, 1 = true
+  )
+''');
+  }
+
+// NEU: Wird aufgerufen, wenn Version von 1 auf 2 erhöht wird
+  Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('''
+        CREATE TABLE einstellungen (
+          id INTEGER PRIMARY KEY CHECK (id = 1),
+          firma_name TEXT,
+          firma_strasse TEXT,
+          firma_plz TEXT,
+          firma_ort TEXT,
+          firma_telefon TEXT,
+          firma_email TEXT,
+          firma_website TEXT,
+          
+          baustelle_strasse TEXT,
+          baustelle_plz TEXT,
+          baustelle_ort TEXT,
+          
+          logo_path TEXT,
+          enable_editing INTEGER DEFAULT 0
+        )
+      ''');
+
+      // Optional: Bestehende Daten aus alter Logik migrieren (falls du vorher SharedPreferences hattest)
+      // Hier leer, weil wir neu starten
+    }
+  }
+
+// Speichert oder aktualisiert die Einstellungen (upsert)
+  Future<void> saveEinstellungen(Map<String, dynamic> data) async {
+    final db = await instance.database;
+
+    final count = Sqflite.firstIntValue(
+        await db.rawQuery('SELECT COUNT(*) FROM einstellungen'));
+
+    if (count == 0) {
+      // Erste Speicherung
+      data['id'] = 1;
+      await db.insert('einstellungen', data);
+    } else {
+      // Update bestehende Zeile
+      await db.update('einstellungen', data, where: 'id = 1');
+    }
+  }
+
+// Lädt alle Einstellungen
+  Future<Map<String, dynamic>?> getEinstellungen() async {
+    final db = await instance.database;
+    final result = await db.query('einstellungen', where: 'id = 1');
+    return result.isNotEmpty ? result.first : null;
   }
 
   // ====================== FIRMA ======================

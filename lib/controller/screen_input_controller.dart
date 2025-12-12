@@ -111,14 +111,106 @@ class ScreenInputController extends GetxController {
   // ==================== PRIVATE ====================
   late SharedPreferences prefs; // Nur noch für Logo-Pfad verwendet
   final ImagePicker _picker = ImagePicker();
-
-  // ==================== LIFECYCLE ====================
   @override
   void onInit() async {
     await _loadAllDataFromDatabase();
+    await _loadEinstellungenFromDB(); // NEU
+
     _setupListeners();
+    _setupAutoSaveListeners(); // Angepasst für DB
 
     super.onInit();
+  }
+
+  void _setupAutoSaveListeners() {
+    // Firma automatisch speichern
+    firmaNameController.addListener(_saveEinstellungen);
+    firmaStrasseController.addListener(_saveEinstellungen);
+    firmaPlzController.addListener(_saveEinstellungen);
+    firmaOrtController.addListener(_saveEinstellungen);
+    firmaTelefonController.addListener(_saveEinstellungen);
+    firmaEmailController.addListener(_saveEinstellungen);
+    firmaWebsiteController.addListener(_saveEinstellungen);
+
+    // Baustelle
+    baustelleStrasseController.addListener(_saveEinstellungen);
+    baustellePlzController.addListener(_saveEinstellungen);
+    baustelleOrtController.addListener(_saveEinstellungen);
+
+    // Switch für Bearbeitung
+    ever(enableEditing, (bool value) async {
+      await _saveEinstellungen();
+    });
+  }
+
+  Future<void> _saveEinstellungen() async {
+    final data = {
+      'firma_name': firmaNameController.text,
+      'firma_strasse': firmaStrasseController.text,
+      'firma_plz': firmaPlzController.text,
+      'firma_ort': firmaOrtController.text,
+      'firma_telefon': firmaTelefonController.text,
+      'firma_email': firmaEmailController.text,
+      'firma_website': firmaWebsiteController.text,
+      'baustelle_strasse': baustelleStrasseController.text,
+      'baustelle_plz': baustellePlzController.text,
+      'baustelle_ort': baustelleOrtController.text,
+      'logo_path': logo.value.path == 'assets/system2000_logo.png'
+          ? ''
+          : logo.value.path,
+      'enable_editing': enableEditing.value ? 1 : 0,
+    };
+
+    await _dbHelper.saveEinstellungen(data);
+
+    // Optional: Reaktive Objekte aktualisieren
+    firma.refresh();
+    baustelle.refresh();
+  }
+
+  Future<void> _loadEinstellungenFromDB() async {
+    final einstellungen = await _dbHelper.getEinstellungen();
+
+    if (einstellungen != null) {
+      // Firma laden
+      firma.value = Firma(
+        name: einstellungen['firma_name'] ?? '',
+        strasse: einstellungen['firma_strasse'] ?? '',
+        plz: einstellungen['firma_plz'] ?? '',
+        ort: einstellungen['firma_ort'] ?? '',
+        telefon: einstellungen['firma_telefon'] ?? '',
+        email: einstellungen['firma_email'] ?? '',
+        website: einstellungen['firma_website'] ?? '',
+      );
+
+      // Baustelle laden
+      baustelle.value = Baustelle(
+          strasse: einstellungen['baustelle_strasse'] ?? '',
+          plz: einstellungen['baustelle_plz'] ?? '',
+          ort: einstellungen['baustelle_ort'] ?? '',
+          kundeId: kunde.value.id ?? 0);
+
+      // Logo laden
+      final savedLogoPath = einstellungen['logo_path'] as String?;
+      if (savedLogoPath != null && savedLogoPath.isNotEmpty) {
+        final file = File(savedLogoPath);
+        if (await file.exists()) {
+          logo.value = XFile(savedLogoPath);
+        } else {
+          resetLogo();
+        }
+      } else {
+        resetLogo();
+      }
+
+      // Bearbeitung erlauben
+      enableEditing.value = (einstellungen['enable_editing'] as int? ?? 0) == 1;
+    } else {
+      // Erste Nutzung → Standard-Logo
+      resetLogo();
+    }
+
+    _initControllers(); // Controller mit aktuellen Werten füllen
   }
 
   @override
@@ -364,7 +456,6 @@ class ScreenInputController extends GetxController {
     });
   }
 
-  // ==================== LOGO FUNKTIONEN ====================
   Future<void> changeLogo(BuildContext context) async {
     try {
       final XFile? pickedFile = await _picker.pickImage(
@@ -381,21 +472,21 @@ class ScreenInputController extends GetxController {
         final File newFile = await File(pickedFile.path).copy(newPath);
 
         logo.value = XFile(newFile.path);
-        logoPath.value = newFile.path;
-        await prefs.setString('logo_path', newFile.path);
+
+        // Sofort in DB speichern
+        await _saveEinstellungen();
 
         Get.snackbar("Erfolg", "Logo wurde gespeichert!");
       }
-      Navigator.pop(context);
     } catch (e) {
+      print(e);
       Get.snackbar("Fehler", "Logo konnte nicht gespeichert werden: $e");
     }
   }
 
   void resetLogo() async {
     logo.value = XFile('assets/system2000_logo.png');
-    logoPath.value = '';
-    await prefs.remove('logo_path');
+    await _saveEinstellungen(); // Speichert leeren Pfad in DB
   }
 
   void addNewTextFields() {

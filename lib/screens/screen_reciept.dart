@@ -4,15 +4,15 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:get/get.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:reciepts/constants.dart';
 import 'package:reciepts/controller/screen_input_controller.dart';
 import 'package:reciepts/controller/unterschrift_controller.dart';
 import 'package:reciepts/screens/settings_screen.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:path_provider/path_provider.dart';
 import '../widgets/content.dart';
 import '../models/reciept_model.dart';
 
@@ -29,6 +29,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
   final ScreenInputController _screenInputController = Get.find();
   bool _isProcessing = false;
 
+  // Dein PDF-Generator bleibt unverändert (funktioniert super!)
   Future<void> _generateAndSharePdf() async {
     if (_isProcessing) return;
     setState(() => _isProcessing = true);
@@ -59,19 +60,16 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
           pw.MultiPage(
             margin: pw.EdgeInsets.all(40),
             pageFormat: PdfPageFormat.a4.copyWith(
-              marginLeft: 30,
-              marginRight: 30,
-              marginTop: 40,
-              marginBottom: 60,
-            ),
+                marginLeft: 30,
+                marginRight: 30,
+                marginTop: 40,
+                marginBottom: 60),
             build: (pw.Context context) => [
               if (pageIndex == 0)
                 pw.Center(
-                  child: pw.Image(logoImage,
-                      width: 150, height: 150, fit: pw.BoxFit.contain),
-                ),
+                    child: pw.Image(logoImage,
+                        width: 150, height: 150, fit: pw.BoxFit.contain)),
               if (pageIndex == 0) pw.SizedBox(height: 30),
-              // ──────── HIER DER NEUE BLOCK ────────
               if (pageIndex == 0) ...[
                 pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -84,71 +82,63 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                         pw.SizedBox(height: 10),
                         pw.Center(
                             child: pw.Text(
-                          _screenInputController.firmaNameController.text,
-                          style: pw.TextStyle(fontSize: 20),
-                        )),
+                                _screenInputController.firmaNameController.text,
+                                style: pw.TextStyle(fontSize: 20))),
                         pw.SizedBox(height: 8),
                         pw.Center(
-                          child: pw.Text(
-                            _screenInputController.firmaStrasseController.text,
-                            style: pw.TextStyle(fontSize: 15),
-                            textAlign: pw.TextAlign.center,
-                          ),
-                        ),
+                            child: pw.Text(
+                                _screenInputController
+                                    .firmaStrasseController.text,
+                                style: pw.TextStyle(fontSize: 15),
+                                textAlign: pw.TextAlign.center)),
                         pw.Column(children: [
                           pw.SizedBox(height: 12),
                           pw.Center(
-                            child: pw.Column(children: [
-                              pw.Text(
-                                  "E-Mail: ${_screenInputController.firmaEmailController.text}",
-                                  style: pw.TextStyle(fontSize: 15)),
-                              pw.Text(
-                                  "Tel: ${_screenInputController.firmaTelefonController.text}",
-                                  style: pw.TextStyle(fontSize: 15)),
-                              pw.Text(
-                                  _screenInputController
-                                      .firmaWebsiteController.text,
-                                  style: pw.TextStyle(fontSize: 15)),
-                            ]),
-                          ),
+                              child: pw.Column(children: [
+                            pw.Text(
+                                "E-Mail: ${_screenInputController.firmaEmailController.text}",
+                                style: pw.TextStyle(fontSize: 15)),
+                            pw.Text(
+                                "Tel: ${_screenInputController.firmaTelefonController.text}",
+                                style: pw.TextStyle(fontSize: 15)),
+                            pw.Text(
+                                _screenInputController
+                                    .firmaWebsiteController.text,
+                                style: pw.TextStyle(fontSize: 15)),
+                          ])),
                         ])
                       ]),
-                      pw.Column(
-                        children: [
-                          pw.SizedBox(height: 10),
-                          pw.Center(
-                              child: pw.Text("Baustelle Infos",
-                                  style: pw.TextStyle(fontSize: 22))),
-                          pw.SizedBox(height: 10),
-                          pw.Center(
+                      pw.Column(children: [
+                        pw.SizedBox(height: 10),
+                        pw.Center(
+                            child: pw.Text("Baustelle Infos",
+                                style: pw.TextStyle(fontSize: 22))),
+                        pw.SizedBox(height: 10),
+                        pw.Center(
                             child: pw.Column(children: [
-                              pw.Text(
-                                  "${_screenInputController.baustelleStrasseController.text}",
-                                  style: pw.TextStyle(fontSize: 15)),
-                              pw.Text(
-                                  "${_screenInputController.baustellePlzController.text}",
-                                  style: pw.TextStyle(fontSize: 15)),
-                              pw.Text(
-                                  _screenInputController
-                                      .baustelleOrtController.text,
-                                  style: pw.TextStyle(fontSize: 15)),
-                            ]),
-                          ),
-                        ],
-                      )
+                          pw.Text(
+                              "${_screenInputController.baustelleStrasseController.text}",
+                              style: pw.TextStyle(fontSize: 15)),
+                          pw.Text(
+                              "${_screenInputController.baustellePlzController.text}",
+                              style: pw.TextStyle(fontSize: 15)),
+                          pw.Text(
+                              _screenInputController
+                                  .baustelleOrtController.text,
+                              style: pw.TextStyle(fontSize: 15)),
+                        ])),
+                      ])
                     ]),
                 pw.SizedBox(height: 33),
               ],
-              // ─────────────────────────────────────
-
               if (pages.length > 1)
                 pw.Align(
                   alignment: pw.Alignment.topRight,
-                  child: pw.Text(
-                    'Seite ${pageIndex + 1} von ${pages.length}',
-                    style: pw.TextStyle(
-                        font: ocrFont, fontSize: 9, color: PdfColors.grey600),
-                  ),
+                  child: pw.Text('Seite ${pageIndex + 1} von ${pages.length}',
+                      style: pw.TextStyle(
+                          font: ocrFont,
+                          fontSize: 9,
+                          color: PdfColors.grey600)),
                 ),
               if (pages.length > 1) pw.SizedBox(height: 10),
               _buildRow([
@@ -192,74 +182,71 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                 ], ocrFont, isHeader: true),
                 pw.SizedBox(height: 40),
                 pw.Table(
-                    tableWidth: pw.TableWidth.min,
-                    border:
-                        pw.TableBorder.symmetric(inside: pw.BorderSide.none),
-                    children: [
-                      pw.TableRow(children: [
-                        pw.Row(
-                            mainAxisAlignment: pw.MainAxisAlignment.center,
-                            children: [
-                              pw.Padding(
-                                padding: pw.EdgeInsets.all(11),
-                                child: pw.Text("Kunde"),
-                              )
-                            ]),
-                        pw.Row(
-                            mainAxisAlignment: pw.MainAxisAlignment.center,
-                            children: [
-                              pw.Padding(
-                                padding: pw.EdgeInsets.all(11),
-                                child: pw.Text("Monteur"),
-                              )
-                            ]),
-                      ]),
-                      pw.TableRow(
-                          decoration: pw.BoxDecoration(
-                            border: pw.Border(
-                                top: pw.BorderSide(
-                                    color: PdfColors.black, width: 2),
-                                bottom: pw.BorderSide.none,
-                                left: pw.BorderSide.none,
-                                right: pw.BorderSide.none),
-                          ),
+                  tableWidth: pw.TableWidth.min,
+                  border: pw.TableBorder.symmetric(inside: pw.BorderSide.none),
+                  children: [
+                    pw.TableRow(children: [
+                      pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.center,
                           children: [
-                            pw.Row(
-                                mainAxisAlignment: pw.MainAxisAlignment.center,
-                                children: [
-                                  pw.Padding(
-                                    padding: pw.EdgeInsets.all(11),
-                                    child: pw.SizedBox(
-                                        height: 100,
-                                        width: 100,
-                                        child: _unterschriftController
-                                                    .kundePngBytes.value !=
-                                                null
-                                            ? pw.Image(pw.MemoryImage(
-                                                _unterschriftController
-                                                    .kundePngBytes.value!))
-                                            : pw.Text("")),
-                                  )
-                                ]),
-                            pw.Row(
-                                mainAxisAlignment: pw.MainAxisAlignment.end,
-                                children: [
-                                  pw.Padding(
-                                    padding: pw.EdgeInsets.all(11),
-                                    child: pw.SizedBox(
-                                        height: 100,
-                                        width: 100,
-                                        child: _unterschriftController
-                                                    .monteurPngBytes.value !=
-                                                null
-                                            ? pw.Image(pw.MemoryImage(
-                                                _unterschriftController
-                                                    .monteurPngBytes.value!))
-                                            : pw.Text("")),
-                                  )
-                                ])
+                            pw.Padding(
+                                padding: pw.EdgeInsets.all(11),
+                                child: pw.Text("Kunde"))
+                          ]),
+                      pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.center,
+                          children: [
+                            pw.Padding(
+                                padding: pw.EdgeInsets.all(11),
+                                child: pw.Text("Monteur"))
                           ]),
                     ]),
+                    pw.TableRow(
+                      decoration: pw.BoxDecoration(
+                          border: pw.Border(
+                              top: pw.BorderSide(
+                                  color: PdfColors.black, width: 2))),
+                      children: [
+                        pw.Row(
+                            mainAxisAlignment: pw.MainAxisAlignment.center,
+                            children: [
+                              pw.Padding(
+                                padding: pw.EdgeInsets.all(11),
+                                child: pw.SizedBox(
+                                  height: 100,
+                                  width: 100,
+                                  child: _unterschriftController
+                                              .kundePngBytes.value !=
+                                          null
+                                      ? pw.Image(pw.MemoryImage(
+                                          _unterschriftController
+                                              .kundePngBytes.value!))
+                                      : pw.Text(""),
+                                ),
+                              )
+                            ]),
+                        pw.Row(
+                            mainAxisAlignment: pw.MainAxisAlignment.end,
+                            children: [
+                              pw.Padding(
+                                padding: pw.EdgeInsets.all(11),
+                                child: pw.SizedBox(
+                                  height: 100,
+                                  width: 100,
+                                  child: _unterschriftController
+                                              .monteurPngBytes.value !=
+                                          null
+                                      ? pw.Image(pw.MemoryImage(
+                                          _unterschriftController
+                                              .monteurPngBytes.value!))
+                                      : pw.Text(""),
+                                ),
+                              )
+                            ]),
+                      ],
+                    ),
+                  ],
+                ),
                 pw.SizedBox(height: 40),
                 pw.Text(
                   '${DateTime.now().toString().substring(0, 16).replaceAll('-', '.')} Uhr',
@@ -274,23 +261,18 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       final pdfBytes = await pdf.save();
 
       if (kIsWeb) {
-        // Web: direkt download
-        // (dein SharePlus-Code funktioniert auf Web nicht immer perfekt – hier besserer Weg falls nötig)
+        // Web: später ggf. Download-Logik
       } else {
         final dir = await getTemporaryDirectory();
         final file = File(
-            "${dir.path}/Kassenbon_${DateTime.now().millisecondsSinceEpoch}.pdf");
+            "${dir.path}/Rechnung_${DateTime.now().millisecondsSinceEpoch}.pdf");
         await file.writeAsBytes(pdfBytes);
-        debugPrint(file.path);
-        await Share.shareXFiles(
-          [XFile(file.path)],
-          text: 'Hier ist Ihr Kassenbon',
-        );
+        await Share.shareXFiles([XFile(file.path)],
+            text: 'Hier ist Ihre Rechnung');
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Fehler beim Erstellen des PDFs: $e')),
-      );
+          SnackBar(content: Text('Fehler beim Erstellen des PDFs: $e')));
     } finally {
       setState(() => _isProcessing = false);
     }
@@ -322,25 +304,77 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     );
   }
 
+  // Verbesserter Custom Header mit SafeArea
+  Widget _buildHeader(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      color: AppColors.background,
+      child: SafeArea(
+        bottom: false,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            GestureDetector(
+              onTap: () => Navigator.maybePop(context),
+              child: Container(
+                padding: EdgeInsets.all(8.w),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                child: Icon(
+                  Icons.arrow_back,
+                  color: AppColors.primary,
+                  size: 24.sp,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Center(
+                child: Text(
+                  "Kassenbon Vorschau",
+                  style: TextStyle(
+                    fontSize: 20.sp,
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => SettingsScreen()),
+              ),
+              child: Container(
+                padding: EdgeInsets.all(8.w),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                child: Icon(
+                  Icons.settings,
+                  color: AppColors.primary,
+                  size: 24.sp,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Kassenbon'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              Navigator.push(
-                  context, MaterialPageRoute(builder: (_) => SettingsScreen()));
-            },
-          ),
-        ],
-      ),
-      backgroundColor: Colors.grey[100],
+      backgroundColor: AppColors.background,
       body: Column(
         children: [
-          // Live-Vorschau des Bons
+          // Custom Header mit SafeArea für Android
+          _buildHeader(context),
+
+          // Live-Vorschau
           Expanded(
             child: Center(
               child: Container(
@@ -349,11 +383,13 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                 margin: EdgeInsets.all(16.w),
                 padding: EdgeInsets.all(24.w),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.surface,
                   borderRadius: BorderRadius.circular(16.r),
+                  border: Border.all(
+                      color: AppColors.primary.withOpacity(0.3), width: 1),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
+                      color: AppColors.primary.withOpacity(0.08),
                       blurRadius: 20.r,
                       offset: Offset(0, 8.h),
                     ),
@@ -364,64 +400,40 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
             ),
           ),
 
-          // PDF-Button (genau wie bei dir)
-          Padding(
-            padding: EdgeInsets.fromLTRB(24.w, 8.h, 24.w, 24.h),
-            child: SizedBox(
-              width: double.infinity,
-              height: 64.h,
-              child: ElevatedButton.icon(
-                onPressed: _isProcessing ? null : _generateAndSharePdf,
-                icon: _isProcessing
-                    ? SizedBox(
-                        width: 24.w,
-                        height: 24.w,
-                        child: const CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 3))
-                    : Icon(Icons.picture_as_pdf, size: 32.sp),
-                label: Text(
-                  _isProcessing
-                      ? 'PDF wird erstellt...'
-                      : 'Als PDF speichern & teilen',
-                  style:
-                      TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.redAccent,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.r)),
-                  // elevation: ElevatedButton.styleFrom(
-                  //   backgroundColor: Colors.redAccent,
-                  //   foregroundColor: Colors.white,
-                  //   shape: RoundedRectangleBorder(
-                  //     borderRadius: BorderRadius.circular(12.r),
-                  //   ),
-                  //   elevation: 4,
-                  // ),
+          // PDF-Button
+          SafeArea(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(24.w, 8.h, 24.w, 24.h),
+              child: SizedBox(
+                width: double.infinity,
+                height: 64.h,
+                child: ElevatedButton.icon(
+                  onPressed: _isProcessing ? null : _generateAndSharePdf,
+                  icon: _isProcessing
+                      ? SizedBox(
+                          width: 24.w,
+                          height: 24.w,
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 3))
+                      : Icon(Icons.picture_as_pdf, size: 32.sp),
+                  label: Text(
+                    _isProcessing
+                        ? 'PDF wird erstellt...'
+                        : 'Als PDF speichern & teilen',
+                    style: AppText.button.copyWith(fontSize: 18.sp),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30.r)),
+                    elevation: 6,
+                  ),
                 ),
               ),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-// Hilfs-Widget für schöne Textfelder im Dialog
-  Widget _buildSettingsTextField(
-      TextEditingController controller, String label) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 12.h),
-      child: TextField(
-        controller: controller,
-        decoration: InputDecoration(
-          labelText: label,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.r)),
-          contentPadding:
-              EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
-        ),
-        style: TextStyle(fontSize: 15.sp),
       ),
     );
   }

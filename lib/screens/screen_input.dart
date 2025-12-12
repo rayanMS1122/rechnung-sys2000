@@ -73,9 +73,6 @@ class _ScreenInputState extends State<ScreenInput> {
         key: _formKey,
         child: Column(
           children: [
-            SizedBox(
-              height: 33,
-            ),
             _buildHeader(context),
             Expanded(
               child: GestureDetector(
@@ -208,44 +205,91 @@ class _ScreenInputState extends State<ScreenInput> {
   }
 
   Widget _buildHeader(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: GestureDetector(
-            onTap: () => Navigator.maybePop(context),
-            child: Icon(
-              Icons.arrow_back,
-            ),
-          ),
-        ),
-        Text(""),
-        Text(
-          "Eingabe",
-          style: Theme.of(
-            context,
-          ).textTheme.headlineSmall!.copyWith(
-              fontSize: 24.sp,
-              color: AppColors.primary,
-              fontWeight: FontWeight.bold),
-        ),
-        Row(
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      color: AppColors.background,
+      child: SafeArea(
+        bottom: false,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Obx(() => editingEnabled
-                ? IconButton(
-                    icon: const Icon(Icons.clear),
-                    onPressed: () => _controller.rechnungTextFielde.clear(),
-                  )
-                : const SizedBox.shrink()),
-            IconButton(
-              icon: const Icon(Icons.settings),
-              onPressed: () => Navigator.push(
-                  context, MaterialPageRoute(builder: (_) => SettingsScreen())),
+            // Back Button
+            GestureDetector(
+              onTap: () => Navigator.maybePop(context),
+              child: Container(
+                padding: EdgeInsets.all(8.w),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                child: Icon(
+                  Icons.arrow_back,
+                  color: AppColors.primary,
+                  size: 24.sp,
+                ),
+              ),
+            ),
+
+            // Titel zentriert
+            Expanded(
+              child: Center(
+                child: Text(
+                  "Eingabe",
+                  style: TextStyle(
+                    fontSize: 20.sp,
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+
+            // Rechte Seite: Clear-Button (nur wenn bearbeitbar) + Settings
+            Row(
+              children: [
+                Obx(() => editingEnabled
+                    ? GestureDetector(
+                        onTap: () => _controller.rechnungTextFielde.clear(),
+                        child: Container(
+                          padding: EdgeInsets.all(8.w),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                          child: Icon(
+                            Icons.clear,
+                            color: AppColors.primary,
+                            size: 24.sp,
+                          ),
+                        ),
+                      )
+                    : SizedBox(
+                        width:
+                            40.w)), // Platzhalter, damit Titel zentriert bleibt
+                SizedBox(width: 8.w),
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => SettingsScreen()),
+                  ),
+                  child: Container(
+                    padding: EdgeInsets.all(8.w),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    child: Icon(
+                      Icons.settings,
+                      color: AppColors.primary,
+                      size: 24.sp,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
-      ],
+      ),
     );
   }
 
