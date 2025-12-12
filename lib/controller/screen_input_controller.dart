@@ -62,6 +62,8 @@ class ScreenInputController extends GetxController {
   final RxString logoPath = ''.obs;
   final rechnungTextFielde = <ReceiptData>[].obs;
   final RxBool enableEditing = false.obs;
+  final RxBool canSaveKunde = true.obs;
+  final RxBool canSaveMonteur = true.obs;
 
   // TextController
   late TextEditingController firmaNameController =
@@ -111,6 +113,8 @@ class ScreenInputController extends GetxController {
   // ==================== PRIVATE ====================
   final ImagePicker _picker = ImagePicker();
   bool _isUpdatingControllers = false; // Flag um Listener zu deaktivieren
+  Timer? _kundeCheckTimer;
+  Timer? _monteurCheckTimer;
   @override
   void onInit() async {
     super.onInit(); // Wichtig: super.onInit() zuerst aufrufen
@@ -271,6 +275,10 @@ class ScreenInputController extends GetxController {
 
   @override
   void onClose() {
+    // Timer beenden
+    _kundeCheckTimer?.cancel();
+    _monteurCheckTimer?.cancel();
+    
     // Alle TextEditingController explizit dispose
     firmaNameController.dispose();
     firmaStrasseController.dispose();
@@ -387,47 +395,161 @@ class ScreenInputController extends GetxController {
     }
   }
 
+  // Prüft ob Kunde gespeichert werden kann (ohne Daten zu laden)
+  Future<void> _checkCanSaveKunde() async {
+    final kundeData = {
+      'name': kundeNameController.text.trim(),
+      'strasse': kundeStrasseController.text.trim(),
+      'plz': kundePlzController.text.trim(),
+      'ort': kundeOrtController.text.trim(),
+      'telefon': kundeTeleController.text.trim(),
+      'email': kundeEmailController.text.trim(),
+    };
+    
+    // Prüfe nur ob Name, PLZ und Ort vorhanden sind (minimale Validierung)
+    if (kundeData['name']!.isEmpty || 
+        kundeData['plz']!.isEmpty || 
+        kundeData['ort']!.isEmpty) {
+      canSaveKunde.value = false;
+      return;
+    }
+    
+    final exists = await _dbHelper.kundeExists(kundeData);
+    canSaveKunde.value = !exists;
+  }
+  
+  // Lädt existierenden Kunden und füllt die Felder
+  Future<void> _loadExistingKunde(Map<String, dynamic> kundeData) async {
+    final allKunden = await _dbHelper.queryAllKunden();
+    final name = (kundeData['name'] ?? '').toString().trim().toLowerCase();
+    final plz = (kundeData['plz'] ?? '').toString().trim().toLowerCase();
+    final ort = (kundeData['ort'] ?? '').toString().trim().toLowerCase();
+    final telefon = (kundeData['telefon'] ?? '').toString().trim().toLowerCase();
+    final email = (kundeData['email'] ?? '').toString().trim().toLowerCase();
+    
+    for (var dbKunde in allKunden) {
+      final dbName = (dbKunde['name']?.toString() ?? '').trim().toLowerCase();
+      final dbPlz = (dbKunde['plz']?.toString() ?? '').trim().toLowerCase();
+      final dbOrt = (dbKunde['ort']?.toString() ?? '').trim().toLowerCase();
+      final dbTelefon = (dbKunde['telefon']?.toString() ?? '').trim().toLowerCase();
+      final dbEmail = (dbKunde['email']?.toString() ?? '').trim().toLowerCase();
+      
+      bool matches = false;
+      if (name.isNotEmpty && plz.isNotEmpty && ort.isNotEmpty) {
+        matches = dbName == name && dbPlz == plz && dbOrt == ort;
+      } else if (name.isNotEmpty && telefon.isNotEmpty) {
+        matches = dbName == name && dbTelefon == telefon;
+      } else if (name.isNotEmpty && email.isNotEmpty) {
+        matches = dbName == name && dbEmail == email;
+      }
+      
+      if (matches) {
+        // Lade den gefundenen Kunden
+        await selectKundeFromDatabase(dbKunde['id'] as int, showSnackbar: false);
+        break;
+      }
+    }
+  }
+
   // KUNDE
-  Future<void> addKundeToDatabase() async {
+  Future<bool> addKundeToDatabase() async {
     try {
-      await _dbHelper.insertKunde({
+      final kundeData = {
         'name': kunde.value?.name ?? '',
         'strasse': kunde.value?.strasse ?? '',
         'plz': kunde.value?.plz ?? '',
         'ort': kunde.value?.ort ?? '',
         'telefon': kunde.value?.telefon ?? '',
         'email': kunde.value?.email ?? '',
-      });
+      };
+      
+      // Prüfe ob identischer Kunde bereits existiert
+      final exists = await _dbHelper.kundeExists(kundeData);
+      if (exists) {
+        await _loadExistingKunde(kundeData);
+        return false;
+      }
+      
+      await _dbHelper.insertKunde(kundeData);
       await _loadAllDataFromDatabase();
-      Get.snackbar("Erfolg", "Kunde wurde gespeichert!");
+      return true;
     } catch (e) {
-      Get.snackbar(
-        "Fehler",
-        "Kunde konnte nicht gespeichert werden: ${e.toString()}",
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 4),
-      );
+      return false;
+    }
+  }
+
+  // Prüft ob Monteur gespeichert werden kann (ohne Daten zu laden)
+  Future<void> _checkCanSaveMonteur() async {
+    final monteurData = {
+      'vorname': monteurVornameController.text.trim(),
+      'nachname': monteurNachnameController.text.trim(),
+      'telefon': monteurTeleController.text.trim(),
+      'email': monteurEmailController.text.trim(),
+    };
+    
+    // Prüfe nur ob Vorname, Nachname und Telefon vorhanden sind (minimale Validierung)
+    if (monteurData['vorname']!.isEmpty || 
+        monteurData['nachname']!.isEmpty || 
+        monteurData['telefon']!.isEmpty) {
+      canSaveMonteur.value = false;
+      return;
+    }
+    
+    final exists = await _dbHelper.monteurExists(monteurData);
+    canSaveMonteur.value = !exists;
+  }
+  
+  // Lädt existierenden Monteur und füllt die Felder
+  Future<void> _loadExistingMonteur(Map<String, dynamic> monteurData) async {
+    final allMonteure = await _dbHelper.queryAllMonteure();
+    final vorname = (monteurData['vorname'] ?? '').toString().trim().toLowerCase();
+    final nachname = (monteurData['nachname'] ?? '').toString().trim().toLowerCase();
+    final telefon = (monteurData['telefon'] ?? '').toString().trim().toLowerCase();
+    
+    for (var dbMonteur in allMonteure) {
+      final dbVorname = (dbMonteur['vorname']?.toString() ?? '').trim().toLowerCase();
+      final dbNachname = (dbMonteur['nachname']?.toString() ?? '').trim().toLowerCase();
+      final dbTelefon = (dbMonteur['telefon']?.toString() ?? '').trim().toLowerCase();
+      
+      bool matches = false;
+      if (vorname.isNotEmpty && nachname.isNotEmpty) {
+        if (telefon.isNotEmpty) {
+          matches = dbVorname == vorname && dbNachname == nachname && dbTelefon == telefon;
+        } else {
+          matches = dbVorname == vorname && dbNachname == nachname;
+        }
+      }
+      
+      if (matches) {
+        // Lade den gefundenen Monteur
+        await selectMonteurFromDatabase(dbMonteur['id'] as int, showSnackbar: false);
+        break;
+      }
     }
   }
 
   // MONTEUR
-  Future<void> addMonteurToDatabase() async {
+  Future<bool> addMonteurToDatabase() async {
     try {
-      await _dbHelper.insertMonteur({
+      final monteurData = {
         'vorname': monteur.value?.vorname ?? '',
         'nachname': monteur.value?.nachname ?? '',
         'telefon': monteur.value?.telefon ?? '',
         'email': monteur.value?.email ?? '',
-      });
+      };
+      
+      // Prüfe ob identischer Monteur bereits existiert
+      final exists = await _dbHelper.monteurExists(monteurData);
+      if (exists) {
+        await _loadExistingMonteur(monteurData);
+        return false;
+      }
+      
+      await _dbHelper.insertMonteur(monteurData);
       await _loadAllDataFromDatabase();
-      Get.snackbar("Erfolg", "Monteur wurde gespeichert!");
+      return true;
     } catch (e) {
-      Get.snackbar(
-        "Fehler",
-        "Monteur konnte nicht gespeichert werden: ${e.toString()}",
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 4),
-      );
+      return false;
     }
   }
 
@@ -516,61 +638,85 @@ class ScreenInputController extends GetxController {
 
   // ==================== LISTENER (Update Reactive Objects) ====================
   void _setupListeners() {
-    // Monteur - aktualisiert reactive Objekte
+    // Monteur - aktualisiert reactive Objekte und prüft Duplikate
+    void _scheduleMonteurCheck() {
+      _monteurCheckTimer?.cancel();
+      _monteurCheckTimer = Timer(const Duration(milliseconds: 500), () {
+        _checkCanSaveMonteur();
+      });
+    }
+    
     monteurVornameController.addListener(() {
       if (!_isUpdatingControllers) {
         monteur.value =
             monteur.value.copyWith(vorname: monteurVornameController.text);
+        _scheduleMonteurCheck();
       }
     });
     monteurNachnameController.addListener(() {
       if (!_isUpdatingControllers) {
         monteur.value =
             monteur.value.copyWith(nachname: monteurNachnameController.text);
+        _scheduleMonteurCheck();
       }
     });
     monteurTeleController.addListener(() {
       if (!_isUpdatingControllers) {
         monteur.value =
             monteur.value.copyWith(telefon: monteurTeleController.text);
+        _scheduleMonteurCheck();
       }
     });
     monteurEmailController.addListener(() {
       if (!_isUpdatingControllers) {
         monteur.value =
             monteur.value.copyWith(email: monteurEmailController.text);
+        _scheduleMonteurCheck();
       }
     });
 
-    // Kunde - aktualisiert reactive Objekte
+    // Kunde - aktualisiert reactive Objekte und prüft Duplikate
+    void _scheduleKundeCheck() {
+      _kundeCheckTimer?.cancel();
+      _kundeCheckTimer = Timer(const Duration(milliseconds: 500), () {
+        _checkCanSaveKunde();
+      });
+    }
+    
     kundeNameController.addListener(() {
       if (!_isUpdatingControllers) {
         kunde.value = kunde.value.copyWith(name: kundeNameController.text);
+        _scheduleKundeCheck();
       }
     });
     kundeStrasseController.addListener(() {
       if (!_isUpdatingControllers) {
         kunde.value = kunde.value.copyWith(strasse: kundeStrasseController.text);
+        _scheduleKundeCheck();
       }
     });
     kundePlzController.addListener(() {
       if (!_isUpdatingControllers) {
         kunde.value = kunde.value.copyWith(plz: kundePlzController.text);
+        _scheduleKundeCheck();
       }
     });
     kundeOrtController.addListener(() {
       if (!_isUpdatingControllers) {
         kunde.value = kunde.value.copyWith(ort: kundeOrtController.text);
+        _scheduleKundeCheck();
       }
     });
     kundeTeleController.addListener(() {
       if (!_isUpdatingControllers) {
         kunde.value = kunde.value.copyWith(telefon: kundeTeleController.text);
+        _scheduleKundeCheck();
       }
     });
     kundeEmailController.addListener(() {
       if (!_isUpdatingControllers) {
         kunde.value = kunde.value.copyWith(email: kundeEmailController.text);
+        _scheduleKundeCheck();
       }
     });
 

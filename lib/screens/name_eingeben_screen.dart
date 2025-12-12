@@ -43,9 +43,10 @@ class _NameEingebenScreenState extends State<NameEingebenScreen> {
             _buildHeader(context),
             SizedBox(height: 22.h),
             // ==================== MONTEUR ====================
-            _sectionHeader(
+            Obx(() => _sectionHeader(
               title: "Monteur Informationen",
               onSearch: () => _selectMonteur(context),
+              showSave: controller.canSaveMonteur.value,
               onSave: () async {
                 // Validierung
                 if (controller.monteurVornameController.text.trim().isEmpty) {
@@ -61,20 +62,24 @@ class _NameEingebenScreenState extends State<NameEingebenScreen> {
                   return;
                 }
                 
-                try {
-                  controller.monteur.value = Monteur(
-                    vorname: controller.monteurVornameController.text.trim(),
-                    nachname: controller.monteurNachnameController.text.trim(),
-                    email: controller.monteurEmailController.text.trim(),
-                    telefon: controller.monteurTeleController.text.trim(),
-                  );
-                  await controller.addMonteurToDatabase();
+                // Aktualisiere monteur.value vor der Prüfung
+                controller.monteur.value = Monteur(
+                  vorname: controller.monteurVornameController.text.trim(),
+                  nachname: controller.monteurNachnameController.text.trim(),
+                  email: controller.monteurEmailController.text.trim(),
+                  telefon: controller.monteurTeleController.text.trim(),
+                );
+                
+                // Speichern
+                final success = await controller.addMonteurToDatabase();
+                if (success) {
                   _showSnackBar("Monteur gespeichert!");
-                } catch (e) {
-                  _showSnackBar("Fehler beim Speichern: $e", error: true);
+                } else {
+                  // Duplikat gefunden, Daten wurden bereits geladen
+                  _showSnackBar("Ein identischer Monteur existiert bereits. Daten wurden geladen.", error: false);
                 }
               },
-            ),
+            )),
             SizedBox(height: 20.h),
 
             customTextField(
@@ -110,9 +115,10 @@ class _NameEingebenScreenState extends State<NameEingebenScreen> {
             SizedBox(height: 40.h),
 
             // ==================== KUNDE ====================
-            _sectionHeader(
+            Obx(() => _sectionHeader(
               title: "Kunden Informationen",
               onSearch: () => _selectKunde(context),
+              showSave: controller.canSaveKunde.value,
               onSave: () async {
                 // Validierung
                 if (controller.kundeNameController.text.trim().isEmpty) {
@@ -132,22 +138,26 @@ class _NameEingebenScreenState extends State<NameEingebenScreen> {
                   return;
                 }
                 
-                try {
-                  controller.kunde.value = Kunde(
-                    name: controller.kundeNameController.text.trim(),
-                    strasse: controller.kundeStrasseController.text.trim(),
-                    plz: controller.kundePlzController.text.trim(),
-                    ort: controller.kundeOrtController.text.trim(),
-                    telefon: controller.kundeTeleController.text.trim(),
-                    email: controller.kundeEmailController.text.trim(),
-                  );
-                  await controller.addKundeToDatabase();
+                // Aktualisiere kunde.value vor der Prüfung
+                controller.kunde.value = Kunde(
+                  name: controller.kundeNameController.text.trim(),
+                  strasse: controller.kundeStrasseController.text.trim(),
+                  plz: controller.kundePlzController.text.trim(),
+                  ort: controller.kundeOrtController.text.trim(),
+                  telefon: controller.kundeTeleController.text.trim(),
+                  email: controller.kundeEmailController.text.trim(),
+                );
+                
+                // Speichern
+                final success = await controller.addKundeToDatabase();
+                if (success) {
                   _showSnackBar("Kunde gespeichert!");
-                } catch (e) {
-                  _showSnackBar("Fehler beim Speichern: $e", error: true);
+                } else {
+                  // Duplikat gefunden, Daten wurden bereits geladen
+                  _showSnackBar("Ein identischer Kunde existiert bereits. Daten wurden geladen.", error: false);
                 }
               },
-            ),
+            )),
             SizedBox(height: 20.h),
 
             customTextField(
@@ -322,6 +332,7 @@ class _NameEingebenScreenState extends State<NameEingebenScreen> {
     required String title,
     required VoidCallback onSearch,
     required VoidCallback onSave,
+    required bool showSave,
   }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -340,10 +351,11 @@ class _NameEingebenScreenState extends State<NameEingebenScreen> {
               onPressed: onSearch,
               icon: Icon(Icons.search, color: AppColors.primary),
             ),
-            IconButton(
-              onPressed: onSave,
-              icon: Icon(Icons.save, color: AppColors.primary),
-            ),
+            if (showSave)
+              IconButton(
+                onPressed: onSave,
+                icon: Icon(Icons.save, color: AppColors.primary),
+              ),
           ],
         ),
       ],

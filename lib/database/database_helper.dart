@@ -225,6 +225,50 @@ class DatabaseHelper {
     return await db.delete('kunde', where: 'id = ?', whereArgs: [id]);
   }
 
+  // Prüft ob ein identischer Kunde bereits existiert
+  Future<bool> kundeExists(Map<String, dynamic> row) async {
+    final db = await instance.database;
+    final name = (row['name']?.toString() ?? '').trim().toLowerCase();
+    final plz = (row['plz']?.toString() ?? '').trim().toLowerCase();
+    final ort = (row['ort']?.toString() ?? '').trim().toLowerCase();
+    final telefon = (row['telefon']?.toString() ?? '').trim().toLowerCase();
+    final email = (row['email']?.toString() ?? '').trim().toLowerCase();
+    
+    // Lade alle Kunden und vergleiche
+    final allKunden = await queryAllKunden();
+    
+    for (var kunde in allKunden) {
+      final dbName = (kunde['name']?.toString() ?? '').trim().toLowerCase();
+      final dbPlz = (kunde['plz']?.toString() ?? '').trim().toLowerCase();
+      final dbOrt = (kunde['ort']?.toString() ?? '').trim().toLowerCase();
+      final dbTelefon = (kunde['telefon']?.toString() ?? '').trim().toLowerCase();
+      final dbEmail = (kunde['email']?.toString() ?? '').trim().toLowerCase();
+      
+      // Prüfe auf identischen Kunden: Name + PLZ + Ort
+      if (name.isNotEmpty && plz.isNotEmpty && ort.isNotEmpty) {
+        if (dbName == name && dbPlz == plz && dbOrt == ort) {
+          return true;
+        }
+      }
+      
+      // Prüfe auf identischen Kunden: Name + Telefon
+      if (name.isNotEmpty && telefon.isNotEmpty) {
+        if (dbName == name && dbTelefon == telefon) {
+          return true;
+        }
+      }
+      
+      // Prüfe auf identischen Kunden: Name + Email
+      if (name.isNotEmpty && email.isNotEmpty) {
+        if (dbName == name && dbEmail == email) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  }
+
   // ====================== MONTEUR ======================
   Future<int> insertMonteur(Map<String, dynamic> row) async {
     try {
@@ -258,6 +302,39 @@ class DatabaseHelper {
   Future<int> deleteMonteur(int id) async {
     final db = await instance.database;
     return await db.delete('monteur', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // Prüft ob ein identischer Monteur bereits existiert
+  Future<bool> monteurExists(Map<String, dynamic> row) async {
+    final db = await instance.database;
+    final vorname = (row['vorname']?.toString() ?? '').trim().toLowerCase();
+    final nachname = (row['nachname']?.toString() ?? '').trim().toLowerCase();
+    final telefon = (row['telefon']?.toString() ?? '').trim().toLowerCase();
+    
+    // Lade alle Monteure und vergleiche
+    final allMonteure = await queryAllMonteure();
+    
+    for (var monteur in allMonteure) {
+      final dbVorname = (monteur['vorname']?.toString() ?? '').trim().toLowerCase();
+      final dbNachname = (monteur['nachname']?.toString() ?? '').trim().toLowerCase();
+      final dbTelefon = (monteur['telefon']?.toString() ?? '').trim().toLowerCase();
+      
+      // Prüfe auf identischen Monteur: Vorname + Nachname
+      if (vorname.isNotEmpty && nachname.isNotEmpty) {
+        if (dbVorname == vorname && dbNachname == nachname) {
+          return true;
+        }
+      }
+      
+      // Prüfe auf identischen Monteur: Vorname + Nachname + Telefon
+      if (vorname.isNotEmpty && nachname.isNotEmpty && telefon.isNotEmpty) {
+        if (dbVorname == vorname && dbNachname == nachname && dbTelefon == telefon) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
   }
 
   // ====================== BAUSTELLE ======================
