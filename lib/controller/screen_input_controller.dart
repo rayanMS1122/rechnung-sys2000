@@ -109,17 +109,12 @@ class ScreenInputController extends GetxController {
       TextEditingController(text: baustelle.value.ort ?? "");
 
   // ==================== PRIVATE ====================
-  late SharedPreferences prefs;
-  Timer? _debounceTimer;
+  late SharedPreferences prefs; // Nur noch für Logo-Pfad verwendet
   final ImagePicker _picker = ImagePicker();
 
   // ==================== LIFECYCLE ====================
   @override
   void onInit() async {
-    prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
-
-    await _loadAllDataFromStorage();
     await _loadAllDataFromDatabase();
     _setupListeners();
 
@@ -128,7 +123,7 @@ class ScreenInputController extends GetxController {
 
   @override
   void onClose() {
-    _debounceTimer?.cancel();
+    // Controller werden automatisch disposed durch GetX
     super.onClose();
   }
 
@@ -138,68 +133,6 @@ class ScreenInputController extends GetxController {
     kundenListe.value = await _dbHelper.queryAllKunden();
     monteureListe.value = await _dbHelper.queryAllMonteure();
     baustellenListe.value = await _dbHelper.queryAllBaustellen();
-  }
-
-  // ==================== DATEN LADEN (SharedPreferences) ====================
-  Future<void> _loadAllDataFromStorage() async {
-    // Firma
-    firma.value = Firma(
-      name: prefs.getString('firma_name') ?? "sys2000",
-      strasse: prefs.getString('firma_strasse') ?? "Am Kühlturm 3a",
-      plz: prefs.getString('firma_plz') ?? "44536",
-      ort: prefs.getString('firma_ort') ?? "Lünen",
-      telefon: prefs.getString('firma_telefon') ?? "0231 9851550",
-      email: prefs.getString('firma_email') ?? "info@system-2000.de",
-      website: prefs.getString('firma_website') ?? "https://system2000.de/",
-    );
-
-    // Baustelle
-    baustelle.value = Baustelle(
-      strasse: prefs.getString('baustelle_strasse') ?? "Berliner Str. 17",
-      plz: prefs.getString('baustelle_plz') ?? "10176",
-      ort: prefs.getString('baustelle_ort') ?? "Berlin",
-      kundeId: kunde.value.id ?? 0,
-    );
-
-    // Monteur
-    monteur.value = Monteur(
-      vorname: prefs.getString('monteur_vorname') ?? "",
-      nachname: prefs.getString('monteur_nachname') ?? "",
-      telefon: prefs.getString('monteur_telefon') ?? "",
-      email: prefs.getString('monteur_email') ?? "",
-    );
-
-    // Kunde
-    kunde.value = Kunde(
-      name: prefs.getString('kunde_name') ?? "",
-      strasse: prefs.getString('kunde_strasse') ?? "",
-      plz: prefs.getString('kunde_plz') ?? "",
-      ort: prefs.getString('kunde_ort') ?? "",
-      telefon: prefs.getString('kunde_telefon') ?? "",
-      email: prefs.getString('kunde_email') ?? "",
-    );
-
-    _initControllers();
-
-    // Logo laden
-    String? savedLogoPath = prefs.getString('logo_path');
-    if (savedLogoPath != null && await File(savedLogoPath).exists()) {
-      logo.value = XFile(savedLogoPath);
-      logoPath.value = savedLogoPath;
-    } else {
-      logo.value = XFile('assets/system2000_logo.png');
-    }
-
-    // Erste Rechnungsposition falls leer
-    if (rechnungTextFielde.isEmpty) {
-      rechnungTextFielde.add(ReceiptData(
-        pos: 0,
-        menge: 0,
-        einh: '',
-        bezeichnung: '',
-        einzelPreis: 0.0,
-      ));
-    }
   }
 
   void _initControllers() {
@@ -358,104 +291,74 @@ class ScreenInputController extends GetxController {
     }
   }
 
-  // ==================== DEBOUNCED SAVE ====================
-  void _debouncedSave(String key, String value) {
-    _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 800), () async {
-      final trimmedValue = value.trim();
-      await prefs.setString(key, trimmedValue);
-      await prefs.reload();
-    });
-  }
-
-  // ==================== LISTENER (Auto-Save) ====================
+  // ==================== LISTENER (Update Reactive Objects) ====================
   void _setupListeners() {
-    // Monteur
+    // Monteur - aktualisiert reactive Objekte
     monteurVornameController.addListener(() {
       monteur.value.vorname = monteurVornameController.text;
-      _debouncedSave('monteur_vorname', monteurVornameController.text);
     });
     monteurNachnameController.addListener(() {
       monteur.value.nachname = monteurNachnameController.text;
-      _debouncedSave('monteur_nachname', monteurNachnameController.text);
     });
     monteurTeleController.addListener(() {
       monteur.value.telefon = monteurTeleController.text;
-      _debouncedSave('monteur_telefon', monteurTeleController.text);
     });
     monteurEmailController.addListener(() {
       monteur.value.email = monteurEmailController.text;
-      _debouncedSave('monteur_email', monteurEmailController.text);
     });
 
-    // Kunde
+    // Kunde - aktualisiert reactive Objekte
     kundeNameController.addListener(() {
       kunde.value.name = kundeNameController.text;
-      _debouncedSave('kunde_name', kundeNameController.text);
     });
     kundeStrasseController.addListener(() {
       kunde.value.strasse = kundeStrasseController.text;
-      _debouncedSave('kunde_strasse', kundeStrasseController.text);
     });
     kundePlzController.addListener(() {
       kunde.value.plz = kundePlzController.text;
-      _debouncedSave('kunde_plz', kundePlzController.text);
     });
     kundeOrtController.addListener(() {
       kunde.value.ort = kundeOrtController.text;
-      _debouncedSave('kunde_ort', kundeOrtController.text);
     });
     kundeTeleController.addListener(() {
       kunde.value.telefon = kundeTeleController.text;
-      _debouncedSave('kunde_telefon', kundeTeleController.text);
     });
     kundeEmailController.addListener(() {
       kunde.value.email = kundeEmailController.text;
-      _debouncedSave('kunde_email', kundeEmailController.text);
     });
 
-    // Baustelle
+    // Baustelle - aktualisiert reactive Objekte
     baustelleStrasseController.addListener(() {
       baustelle.value.strasse = baustelleStrasseController.text;
-      _debouncedSave('baustelle_strasse', baustelleStrasseController.text);
     });
     baustellePlzController.addListener(() {
       baustelle.value.plz = baustellePlzController.text;
-      _debouncedSave('baustelle_plz', baustellePlzController.text);
     });
     baustelleOrtController.addListener(() {
       baustelle.value.ort = baustelleOrtController.text;
-      _debouncedSave('baustelle_ort', baustelleOrtController.text);
     });
 
-    // Firma
+    // Firma - aktualisiert reactive Objekte
     firmaNameController.addListener(() {
       firma.value.name = firmaNameController.text;
-      _debouncedSave('firma_name', firmaNameController.text);
     });
     firmaStrasseController.addListener(() {
       firma.value.strasse = firmaStrasseController.text;
-      _debouncedSave('firma_strasse', firmaStrasseController.text);
     });
     firmaPlzController.addListener(() {
       firma.value.plz = firmaPlzController.text;
-      _debouncedSave('firma_plz', firmaPlzController.text);
     });
     firmaOrtController.addListener(() {
       firma.value.ort = firmaOrtController.text;
-      _debouncedSave('firma_ort', firmaOrtController.text);
     });
     firmaTelefonController.addListener(() {
       firma.value.telefon = firmaTelefonController.text;
-      _debouncedSave('firma_telefon', firmaTelefonController.text);
     });
     firmaEmailController.addListener(() {
       firma.value.email = firmaEmailController.text;
-      _debouncedSave('firma_email', firmaEmailController.text);
     });
     firmaWebsiteController.addListener(() {
       firma.value.website = firmaWebsiteController.text;
-      _debouncedSave('firma_website', firmaWebsiteController.text);
     });
   }
 
