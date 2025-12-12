@@ -10,6 +10,7 @@ import 'package:reciepts/controller/screen_input_controller.dart';
 import 'package:reciepts/controller/unterschrift_controller.dart';
 import 'package:reciepts/screens/name_eingeben_screen.dart';
 import 'package:reciepts/screens/designen.dart';
+import 'package:reciepts/screens/screen_input.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -89,7 +90,7 @@ class MyApp extends StatelessWidget {
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
           ),
         ),
-        home: NameEingebenScreen(),
+        home: ScreenInput(),
       ),
     );
   }
