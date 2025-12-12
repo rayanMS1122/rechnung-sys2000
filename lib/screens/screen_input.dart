@@ -1,8 +1,11 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:reciepts/constants.dart';
 import 'package:reciepts/controller/screen_input_controller.dart';
 import 'package:reciepts/controller/unterschrift_controller.dart';
@@ -23,6 +26,15 @@ class _ScreenInputState extends State<ScreenInput> {
   final ScreenInputController _controller = Get.find();
   final UnterschriftController _unterschriftController = Get.find();
   final ScrollController _scrollController = ScrollController();
+  
+  // Deutsche Zahlenformatierung (Komma statt Punkt, immer 2 Dezimalstellen)
+  final NumberFormat _numberFormat = NumberFormat('#,##0.00', 'de_DE');
+  
+  // Hilfsfunktion für deutsche Zahlenformatierung
+  String _formatNumber(double value) {
+    // NumberFormat mit 'de_DE' verwendet bereits Komma als Dezimaltrennzeichen
+    return _numberFormat.format(value);
+  }
 
   @override
   void dispose() {
@@ -31,6 +43,45 @@ class _ScreenInputState extends State<ScreenInput> {
   }
 
   void _submitForm() {
+    // Validierung: Prüfe ob mindestens eine Position vorhanden ist
+    if (_controller.rechnungTextFielde.isEmpty) {
+      Get.snackbar(
+        "Fehler",
+        "Bitte fügen Sie mindestens eine Position hinzu",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
+      return;
+    }
+    
+    // Validierung: Prüfe alle Positionen
+    for (int i = 0; i < _controller.rechnungTextFielde.length; i++) {
+      final item = _controller.rechnungTextFielde[i];
+      
+      if (item.menge == null || item.menge! <= 0) {
+        Get.snackbar(
+          "Fehler",
+          "Position ${i + 1}: Menge muss größer als 0 sein",
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.redAccent,
+          colorText: Colors.white,
+        );
+        return;
+      }
+      
+      if (item.einzelPreis == null || item.einzelPreis! < 0) {
+        Get.snackbar(
+          "Fehler",
+          "Position ${i + 1}: Einzelpreis ist erforderlich",
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.redAccent,
+          colorText: Colors.white,
+        );
+        return;
+      }
+    }
+    
     if (_formKey.currentState!.validate()) {
       Navigator.push(
         context,
@@ -370,11 +421,23 @@ class _ScreenInputState extends State<ScreenInput> {
                 Expanded(
                   flex: 2,
                   child: TextFormField(
-                    initialValue: item.menge?.toStringAsFixed(2) ?? "1.00",
+                    initialValue: item.menge != null 
+                        ? _formatNumber(item.menge!) 
+                        : "1,00",
                     keyboardType:
                         TextInputType.numberWithOptions(decimal: true),
-                    decoration: _inputDecoration("Menge"),
+                    decoration: _inputDecoration("Menge *"),
                     style: TextStyle(fontSize: 14.sp),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return "Erforderlich";
+                      }
+                      final parsed = double.tryParse(value.replaceAll(',', '.'));
+                      if (parsed == null || parsed <= 0) {
+                        return "> 0";
+                      }
+                      return null;
+                    },
                     onChanged: (value) {
                       final parsed =
                           double.tryParse(value.replaceAll(',', '.')) ?? 0.0;
@@ -401,12 +464,23 @@ class _ScreenInputState extends State<ScreenInput> {
                 Expanded(
                   flex: 3,
                   child: TextFormField(
-                    initialValue:
-                        item.einzelPreis?.toStringAsFixed(2) ?? "0.00",
+                    initialValue: item.einzelPreis != null
+                        ? _formatNumber(item.einzelPreis!)
+                        : "0,00",
                     keyboardType:
                         TextInputType.numberWithOptions(decimal: true),
-                    decoration: _inputDecoration("Einzelpreis €"),
+                    decoration: _inputDecoration("Einzelpreis € *"),
                     style: TextStyle(fontSize: 14.sp),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return "Erforderlich";
+                      }
+                      final parsed = double.tryParse(value.replaceAll(',', '.'));
+                      if (parsed == null || parsed < 0) {
+                        return "≥ 0";
+                      }
+                      return null;
+                    },
                     onChanged: (value) {
                       final parsed =
                           double.tryParse(value.replaceAll(',', '.')) ?? 0.0;
@@ -450,24 +524,87 @@ class _ScreenInputState extends State<ScreenInput> {
 
             SizedBox(height: 12.h),
 
-            // Action Buttons (noch nicht implementiert)
+            // Bilder-Anzeige
+            if (item.img != null && item.img!.isNotEmpty) ...[
+              SizedBox(
+                height: 100.h,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: item.img!.length,
+                  itemBuilder: (context, imgIndex) {
+                    return Padding(
+                      padding: EdgeInsets.only(right: 8.w),
+                      child: Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8.r),
+                            child: Image.file(
+                              File(item.img![imgIndex]),
+                              width: 100.w,
+                              height: 100.h,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  width: 100.w,
+                                  height: 100.h,
+                                  color: Colors.grey.shade300,
+                                  child: Icon(Icons.broken_image, color: Colors.grey),
+                                );
+                              },
+                            ),
+                          ),
+                          Positioned(
+                            top: 4.h,
+                            right: 4.w,
+                            child: GestureDetector(
+                              onTap: () {
+                                controller.removeImageFromPosition(index, imgIndex);
+                              },
+                              child: Container(
+                                padding: EdgeInsets.all(4.w),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.close,
+                                  color: Colors.white,
+                                  size: 16.sp,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              SizedBox(height: 12.h),
+            ],
 
+            // Action Buttons
             Center(
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    "Kommt in zweiten Version",
-                    style: TextStyle(color: AppColors.error),
-                  ),
                   _actionButton(
                       icon: Icons.image_outlined,
-                      label: "Bild anzeigen",
-                      onTap: () {}),
-                  SizedBox(height: 10.w),
+                      label: item.img != null && item.img!.isNotEmpty 
+                          ? "Bilder anzeigen (${item.img!.length})" 
+                          : "Bilder anzeigen",
+                      onTap: () {
+                        if (item.img != null && item.img!.isNotEmpty) {
+                          _showImageGallery(context, index);
+                        } else {
+                          Get.snackbar("Info", "Keine Bilder vorhanden");
+                        }
+                      }),
+                  SizedBox(height: 10.h),
                   _actionButton(
                       icon: Icons.photo_library_outlined,
                       label: "Bilder hinzufügen",
-                      onTap: () {}),
+                      onTap: () => _showImageSourceDialog(context, index)),
                 ],
               ),
             ),
@@ -494,7 +631,7 @@ class _ScreenInputState extends State<ScreenInput> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 40.w, vertical: 10.h),
+        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
         decoration: BoxDecoration(
           color: AppColors.primary,
           borderRadius: BorderRadius.circular(16.r),
@@ -502,10 +639,171 @@ class _ScreenInputState extends State<ScreenInput> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: Colors.white, size: 13.sp),
-            SizedBox(width: 4.w),
-            Text(label, style: AppText.button.copyWith(fontSize: 11.sp)),
+            Icon(icon, color: Colors.white, size: 16.sp),
+            SizedBox(width: 6.w),
+            Flexible(
+              child: Text(
+                label,
+                style: AppText.button.copyWith(fontSize: 11.sp),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // Dialog zum Auswählen der Bildquelle
+  void _showImageSourceDialog(BuildContext context, int index) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        padding: EdgeInsets.all(20.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              "Bildquelle auswählen",
+              style: TextStyle(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primary,
+              ),
+            ),
+            SizedBox(height: 20.h),
+            ListTile(
+              leading: Icon(Icons.photo_library, color: AppColors.primary),
+              title: Text("Aus Galerie auswählen"),
+              onTap: () {
+                Navigator.pop(context);
+                _controller.addImagesToPosition(index, source: ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.camera_alt, color: AppColors.primary),
+              title: Text("Foto aufnehmen"),
+              onTap: () {
+                Navigator.pop(context);
+                _controller.addImageFromCamera(index);
+              },
+            ),
+            SizedBox(height: 10.h),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Bildergalerie-Dialog zum Anzeigen aller Bilder
+  void _showImageGallery(BuildContext context, int index) {
+    final images = _controller.getImagesForPosition(index);
+    
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          height: MediaQuery.of(context).size.height * 0.8,
+          child: Column(
+            children: [
+              // Header
+              Container(
+                padding: EdgeInsets.all(16.w),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(12.r),
+                    topRight: Radius.circular(12.r),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Bilder (${images.length})",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              // Bilder-Grid
+              Expanded(
+                child: Container(
+                  color: Colors.black87,
+                  child: GridView.builder(
+                    padding: EdgeInsets.all(16.w),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 12.w,
+                      mainAxisSpacing: 12.h,
+                    ),
+                    itemCount: images.length,
+                    itemBuilder: (context, imgIndex) {
+                      return Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8.r),
+                            child: Image.file(
+                              File(images[imgIndex]),
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              height: double.infinity,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Colors.grey.shade800,
+                                  child: Center(
+                                    child: Icon(
+                                      Icons.broken_image,
+                                      color: Colors.grey,
+                                      size: 40.sp,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          Positioned(
+                            top: 8.h,
+                            right: 8.w,
+                            child: GestureDetector(
+                              onTap: () {
+                                _controller.removeImageFromPosition(index, imgIndex);
+                                Navigator.pop(context);
+                                if (_controller.getImagesForPosition(index).isNotEmpty) {
+                                  _showImageGallery(context, index);
+                                }
+                              },
+                              child: Container(
+                                padding: EdgeInsets.all(6.w),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.delete,
+                                  color: Colors.white,
+                                  size: 20.sp,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

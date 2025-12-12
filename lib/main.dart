@@ -90,7 +90,7 @@ class MyApp extends StatelessWidget {
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
           ),
         ),
-        home: ScreenInput(),
+        home: NameEingebenScreen(),
       ),
     );
   }

@@ -1,11 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:get/instance_manager.dart';
-import 'package:reciepts/constants.dart';
 import 'package:reciepts/controller/unterschrift_controller.dart';
-import 'package:reciepts/screens/settings_screen.dart';
 
 class UnterschrftScreen extends StatefulWidget {
   final title;
@@ -17,6 +15,11 @@ class UnterschrftScreen extends StatefulWidget {
 
 class _UnterschrftScreenState extends State<UnterschrftScreen> {
   UnterschriftController _controller = Get.find();
+  Timer? _checkTimer;
+  int _lastPointCount = 0;
+  DateTime? _lastDrawingTime;
+  bool _hasDrawn = false;
+
   @override
   void initState() {
     super.initState();
@@ -24,11 +27,61 @@ class _UnterschrftScreenState extends State<UnterschrftScreen> {
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
+    
+    // Periodischer Timer, der prüft, ob der User aufgehört hat zu zeichnen
+    _checkTimer = Timer.periodic(const Duration(milliseconds: 300), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      
+      final signatureController = widget.title == "Kunde"
+          ? _controller.kundeSignatureController
+          : _controller.monteurSignatureController;
+      
+      // Aktuelle Anzahl der Punkte prüfen
+      final currentPointCount = signatureController.points.length;
+      
+      // Wenn sich die Punkte geändert haben, hat der User gezeichnet
+      if (currentPointCount > _lastPointCount) {
+        _hasDrawn = true;
+        _lastDrawingTime = DateTime.now();
+        _lastPointCount = currentPointCount;
+      }
+      
+      // Wenn der User gezeichnet hat und seit 1 Sekunde nicht mehr gezeichnet hat
+      if (_hasDrawn && 
+          _lastDrawingTime != null &&
+          currentPointCount > 0 &&
+          DateTime.now().difference(_lastDrawingTime!).inMilliseconds >= 1000) {
+        timer.cancel();
+        _saveAndClose();
+      }
+    });
+  }
+
+  Future<void> _saveAndClose() async {
+    if (!mounted) return;
+    
+    try {
+      if (widget.title == "Kunde") {
+        await _controller.saveKundeBytesToImage(context);
+      } else {
+        await _controller.saveMonteurBytesToImage(context);
+      }
+    } catch (e) {
+      debugPrint("Fehler beim Speichern der Unterschrift: $e");
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    }
   }
 
   @override
   void dispose() {
-    // Zurück auf Hochformat, wenn du willst
+    _checkTimer?.cancel();
+    
+    // Zurück auf Hochformat
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
@@ -40,81 +93,14 @@ class _UnterschrftScreenState extends State<UnterschrftScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // appBar: AppBar(
-      //   title: Text("Unterschriften"),
-      //   actions: [
-      //     IconButton(
-      //       onPressed: _controller.clearSignature(widget.title == "Kunde"
-      //           ? _controller.kundeSignatureController
-      //           : _controller.monteurSignatureController),
-      //       icon: Icon(Icons.clear),
-      //     ),
-      //     IconButton(
-      //       onPressed: () {
-      //         widget.title == "Kunde"
-      //             ? _controller.saveKundeBytesToImage(context)
-      //             : _controller.saveMonteurBytesToImage(context);
-
-      //         // _controller.update();
-      //       },
-      //       icon: Icon(Icons.save),
-      //     )
-      //   ],
-      // ),
+      backgroundColor: Colors.white,
       body: Container(
-        width: MediaQuery.sizeOf(context).width * .9,
-        height: MediaQuery.sizeOf(context).height * .9,
-        child: Column(children: [
-          _buildHeader(context),
-          widget.title == "Kunde"
-              ? _controller.kundeSignatureCanvas
-              : _controller.monteurSignatureCanvas,
-        ]),
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-      color: AppColors.background,
-      child: SafeArea(
-        bottom: false,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            // Back Button
-            GestureDetector(
-              onTap: () => Navigator.maybePop(context),
-              child: Container(
-                padding: EdgeInsets.all(8.w),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                child: Icon(
-                  Icons.arrow_back,
-                  color: AppColors.primary,
-                  size: 24.sp,
-                ),
-              ),
-            ),
-
-            // Titel zentriert
-            Expanded(
-              child: Center(
-                child: Text(
-                  "Eingabe",
-                  style: TextStyle(
-                    fontSize: 20.sp,
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+        width: double.infinity,
+        height: double.infinity,
+        color: Colors.white,
+        child: widget.title == "Kunde"
+            ? _controller.kundeSignatureCanvas
+            : _controller.monteurSignatureCanvas,
       ),
     );
   }

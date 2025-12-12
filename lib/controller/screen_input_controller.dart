@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -7,7 +8,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:reciepts/models/baustelle.dart';
 import 'package:reciepts/models/kunde.dart';
 import 'package:reciepts/models/monteur.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:reciepts/models/firma_model.dart';
 import 'package:reciepts/models/reciept_model.dart';
 import 'package:reciepts/database/database_helper.dart';
@@ -86,7 +86,7 @@ class ScreenInputController extends GetxController {
   late TextEditingController kundePlzController =
       TextEditingController(text: kunde.value?.plz ?? "");
   late TextEditingController kundeOrtController =
-      TextEditingController(text: kunde?.value.ort ?? "");
+      TextEditingController(text: kunde.value?.ort ?? "");
   late TextEditingController kundeTeleController =
       TextEditingController(text: kunde.value?.telefon ?? "");
   late TextEditingController kundeEmailController =
@@ -109,17 +109,20 @@ class ScreenInputController extends GetxController {
       TextEditingController(text: baustelle.value.ort ?? "");
 
   // ==================== PRIVATE ====================
-  late SharedPreferences prefs; // Nur noch für Logo-Pfad verwendet
   final ImagePicker _picker = ImagePicker();
+  bool _isUpdatingControllers = false; // Flag um Listener zu deaktivieren
   @override
   void onInit() async {
+    super.onInit(); // Wichtig: super.onInit() zuerst aufrufen
+    
+    // Controller zuerst initialisieren
+    _initControllers();
+    
     await _loadAllDataFromDatabase();
-    await _loadEinstellungenFromDB(); // NEU
+    await _loadEinstellungenFromDB(); // Lädt Daten und aktualisiert Controller
 
     _setupListeners();
     _setupAutoSaveListeners(); // Angepasst für DB
-
-    super.onInit();
   }
 
   void _setupAutoSaveListeners() {
@@ -159,6 +162,8 @@ class ScreenInputController extends GetxController {
           ? ''
           : logo.value.path,
       'enable_editing': enableEditing.value ? 1 : 0,
+      'last_monteur_id': monteur.value.id,
+      'last_kunde_id': kunde.value.id,
     };
 
     await _dbHelper.saveEinstellungen(data);
@@ -205,17 +210,92 @@ class ScreenInputController extends GetxController {
 
       // Bearbeitung erlauben
       enableEditing.value = (einstellungen['enable_editing'] as int? ?? 0) == 1;
+
+      // Zuletzt ausgewählten Monteur laden (ohne Snackbar beim App-Start)
+      final lastMonteurId = einstellungen['last_monteur_id'] as int?;
+      if (lastMonteurId != null && lastMonteurId > 0) {
+        try {
+          final monteurData = await _dbHelper.queryMonteurById(lastMonteurId);
+          if (monteurData != null) {
+            monteur.value = Monteur(
+              id: monteurData['id'] as int?,
+              vorname: monteurData['vorname']?.toString() ?? '',
+              nachname: monteurData['nachname']?.toString() ?? '',
+              telefon: monteurData['telefon']?.toString() ?? '',
+              email: monteurData['email']?.toString() ?? '',
+            );
+            // Controller direkt aktualisieren
+            updateMonteurControllers();
+            debugPrint('Zuletzt ausgewählter Monteur (ID: $lastMonteurId) wurde geladen');
+          }
+        } catch (e) {
+          debugPrint('Fehler beim Laden des zuletzt ausgewählten Monteurs: $e');
+        }
+      }
+
+      // Zuletzt ausgewählten Kunden laden (ohne Snackbar beim App-Start)
+      final lastKundeId = einstellungen['last_kunde_id'] as int?;
+      if (lastKundeId != null && lastKundeId > 0) {
+        try {
+          final kundeData = await _dbHelper.queryKundeById(lastKundeId);
+          if (kundeData != null) {
+            kunde.value = Kunde(
+              id: kundeData['id'] as int?,
+              name: kundeData['name']?.toString() ?? '',
+              strasse: kundeData['strasse']?.toString() ?? '',
+              plz: kundeData['plz']?.toString() ?? '',
+              ort: kundeData['ort']?.toString() ?? '',
+              telefon: kundeData['telefon']?.toString() ?? '',
+              email: kundeData['email']?.toString() ?? '',
+            );
+            // Controller direkt aktualisieren
+            updateKundeControllers();
+            debugPrint('Zuletzt ausgewählter Kunde (ID: $lastKundeId) wurde geladen');
+          }
+        } catch (e) {
+          debugPrint('Fehler beim Laden des zuletzt ausgewählten Kunden: $e');
+        }
+      }
     } else {
       // Erste Nutzung → Standard-Logo
       resetLogo();
     }
 
-    _initControllers(); // Controller mit aktuellen Werten füllen
+    // Controller mit aktuellen Werten füllen (NACH dem Laden der Daten)
+    _initControllers();
+    
+    // Nach dem Initialisieren der Controller die geladenen Werte in die Controller schreiben
+    updateMonteurControllers();
+    updateKundeControllers();
   }
 
   @override
   void onClose() {
-    // Controller werden automatisch disposed durch GetX
+    // Alle TextEditingController explizit dispose
+    firmaNameController.dispose();
+    firmaStrasseController.dispose();
+    firmaPlzController.dispose();
+    firmaOrtController.dispose();
+    firmaTelefonController.dispose();
+    firmaWebsiteController.dispose();
+    firmaEmailController.dispose();
+    
+    kundeNameController.dispose();
+    kundeStrasseController.dispose();
+    kundePlzController.dispose();
+    kundeOrtController.dispose();
+    kundeTeleController.dispose();
+    kundeEmailController.dispose();
+    
+    monteurVornameController.dispose();
+    monteurNachnameController.dispose();
+    monteurTeleController.dispose();
+    monteurEmailController.dispose();
+    
+    baustelleStrasseController.dispose();
+    baustellePlzController.dispose();
+    baustelleOrtController.dispose();
+    
     super.onClose();
   }
 
@@ -227,52 +307,66 @@ class ScreenInputController extends GetxController {
     baustellenListe.value = await _dbHelper.queryAllBaustellen();
   }
 
-  void _initControllers() {
-    firmaNameController = TextEditingController(text: firma.value.name);
-    firmaStrasseController = TextEditingController(text: firma.value.strasse);
-    firmaPlzController = TextEditingController(text: firma.value.plz);
-    firmaOrtController = TextEditingController(text: firma.value.ort);
-    firmaTelefonController = TextEditingController(text: firma.value.telefon);
-    firmaEmailController = TextEditingController(text: firma.value.email);
-    firmaWebsiteController = TextEditingController(text: firma.value.website);
+  // Public Methode zum Neuladen der Daten (für Suchdialoge)
+  Future<void> reloadAllData() async {
+    await _loadAllDataFromDatabase();
+  }
 
-    kundeNameController = TextEditingController(text: kunde.value.name);
-    kundeStrasseController = TextEditingController(text: kunde.value.strasse);
-    kundePlzController = TextEditingController(text: kunde.value.plz);
-    kundeOrtController = TextEditingController(text: kunde.value.ort);
-    kundeTeleController = TextEditingController(text: kunde.value.telefon);
-    kundeEmailController = TextEditingController(text: kunde.value.email);
+  void _initControllers() {
+    firmaNameController = TextEditingController(text: firma.value.name ?? '');
+    firmaStrasseController = TextEditingController(text: firma.value.strasse ?? '');
+    firmaPlzController = TextEditingController(text: firma.value.plz ?? '');
+    firmaOrtController = TextEditingController(text: firma.value.ort ?? '');
+    firmaTelefonController = TextEditingController(text: firma.value.telefon ?? '');
+    firmaEmailController = TextEditingController(text: firma.value.email ?? '');
+    firmaWebsiteController = TextEditingController(text: firma.value.website ?? '');
+
+    kundeNameController = TextEditingController(text: kunde.value?.name ?? '');
+    kundeStrasseController = TextEditingController(text: kunde.value?.strasse ?? '');
+    kundePlzController = TextEditingController(text: kunde.value?.plz ?? '');
+    kundeOrtController = TextEditingController(text: kunde.value?.ort ?? '');
+    kundeTeleController = TextEditingController(text: kunde.value?.telefon ?? '');
+    kundeEmailController = TextEditingController(text: kunde.value?.email ?? '');
 
     monteurVornameController =
-        TextEditingController(text: monteur.value.vorname);
+        TextEditingController(text: monteur.value?.vorname ?? '');
     monteurNachnameController =
-        TextEditingController(text: monteur.value.nachname);
-    monteurTeleController = TextEditingController(text: monteur.value.telefon);
+        TextEditingController(text: monteur.value?.nachname ?? '');
+    monteurTeleController = TextEditingController(text: monteur.value?.telefon ?? '');
     monteurEmailController =
         TextEditingController(text: monteur.value.email ?? "");
     updateMonteurControllers();
     updateKundeControllers();
     baustelleStrasseController =
-        TextEditingController(text: baustelle.value.strasse);
-    baustellePlzController = TextEditingController(text: baustelle.value.plz);
-    baustelleOrtController = TextEditingController(text: baustelle.value.ort);
+        TextEditingController(text: baustelle.value.strasse ?? '');
+    baustellePlzController = TextEditingController(text: baustelle.value.plz ?? '');
+    baustelleOrtController = TextEditingController(text: baustelle.value.ort ?? '');
   }
 
   // ==================== DATABASE FUNKTIONEN ====================
 
   // FIRMA
   Future<void> addFirmaToDatabase() async {
-    await _dbHelper.insertFirma({
-      'name': firma.value.name,
-      'strasse': firma.value.strasse,
-      'plz': firma.value.plz,
-      'ort': firma.value.ort,
-      'telefon': firma.value.telefon,
-      'email': firma.value.email,
-      'website': firma.value.website,
-    });
-    await _loadAllDataFromDatabase();
-    Get.snackbar("Erfolg", "Firma wurde gespeichert!");
+    try {
+      await _dbHelper.insertFirma({
+        'name': firma.value.name,
+        'strasse': firma.value.strasse,
+        'plz': firma.value.plz,
+        'ort': firma.value.ort,
+        'telefon': firma.value.telefon,
+        'email': firma.value.email,
+        'website': firma.value.website,
+      });
+      await _loadAllDataFromDatabase();
+      Get.snackbar("Erfolg", "Firma wurde gespeichert!");
+    } catch (e) {
+      Get.snackbar(
+        "Fehler",
+        "Firma konnte nicht gespeichert werden: ${e.toString()}",
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 4),
+      );
+    }
   }
 
   Future<void> selectFirmaFromDatabase(int id) async {
@@ -295,77 +389,114 @@ class ScreenInputController extends GetxController {
 
   // KUNDE
   Future<void> addKundeToDatabase() async {
-    await _dbHelper.insertKunde({
-      'name': kunde.value.name,
-      'strasse': kunde.value.strasse,
-      'plz': kunde.value.plz,
-      'ort': kunde.value.ort,
-      'telefon': kunde.value.telefon,
-      'email': kunde.value.email,
-    });
-    await _loadAllDataFromDatabase();
-    Get.snackbar("Erfolg", "Kunde wurde gespeichert!");
+    try {
+      await _dbHelper.insertKunde({
+        'name': kunde.value?.name ?? '',
+        'strasse': kunde.value?.strasse ?? '',
+        'plz': kunde.value?.plz ?? '',
+        'ort': kunde.value?.ort ?? '',
+        'telefon': kunde.value?.telefon ?? '',
+        'email': kunde.value?.email ?? '',
+      });
+      await _loadAllDataFromDatabase();
+      Get.snackbar("Erfolg", "Kunde wurde gespeichert!");
+    } catch (e) {
+      Get.snackbar(
+        "Fehler",
+        "Kunde konnte nicht gespeichert werden: ${e.toString()}",
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 4),
+      );
+    }
   }
 
   // MONTEUR
   Future<void> addMonteurToDatabase() async {
-    await _dbHelper.insertMonteur({
-      'vorname': monteur.value.vorname,
-      'nachname': monteur.value.nachname,
-      'telefon': monteur.value.telefon,
-      'email': monteur.value.email,
-    });
-    await _loadAllDataFromDatabase();
-    Get.snackbar("Erfolg", "Monteur wurde gespeichert!");
+    try {
+      await _dbHelper.insertMonteur({
+        'vorname': monteur.value?.vorname ?? '',
+        'nachname': monteur.value?.nachname ?? '',
+        'telefon': monteur.value?.telefon ?? '',
+        'email': monteur.value?.email ?? '',
+      });
+      await _loadAllDataFromDatabase();
+      Get.snackbar("Erfolg", "Monteur wurde gespeichert!");
+    } catch (e) {
+      Get.snackbar(
+        "Fehler",
+        "Monteur konnte nicht gespeichert werden: ${e.toString()}",
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 4),
+      );
+    }
   }
 
-  Future<void> selectMonteurFromDatabase(int id) async {
+  Future<void> selectMonteurFromDatabase(int id, {bool showSnackbar = true}) async {
     final monteurData = await _dbHelper.queryMonteurById(id);
     if (monteurData != null) {
       monteur.value = Monteur(
-        id: monteurData['id'],
-        vorname: monteurData['vorname'],
-        nachname: monteurData['nachname'],
-        telefon: monteurData['telefon'],
-        email: monteurData['email'],
+        id: monteurData['id'] as int?,
+        vorname: monteurData['vorname']?.toString() ?? '',
+        nachname: monteurData['nachname']?.toString() ?? '',
+        telefon: monteurData['telefon']?.toString() ?? '',
+        email: monteurData['email']?.toString() ?? '',
       );
 
       // Das ist der entscheidende Aufruf!
       updateMonteurControllers();
 
-      Get.snackbar("Erfolg", "Monteur wurde geladen!");
+      // ID in Einstellungen speichern
+      await _saveEinstellungen();
+
+      if (showSnackbar) {
+        Get.snackbar("Erfolg", "Monteur wurde geladen!");
+      }
     }
   }
 
-  Future<void> selectKundeFromDatabase(int id) async {
+  Future<void> selectKundeFromDatabase(int id, {bool showSnackbar = true}) async {
     final kundeData = await _dbHelper.queryKundeById(id);
     if (kundeData != null) {
       kunde.value = Kunde(
-        id: kundeData['id'],
-        name: kundeData['name'],
-        strasse: kundeData['strasse'],
-        plz: kundeData['plz'],
-        ort: kundeData['ort'],
-        telefon: kundeData['telefon'],
-        email: kundeData['email'],
+        id: kundeData['id'] as int?,
+        name: kundeData['name']?.toString() ?? '',
+        strasse: kundeData['strasse']?.toString() ?? '',
+        plz: kundeData['plz']?.toString() ?? '',
+        ort: kundeData['ort']?.toString() ?? '',
+        telefon: kundeData['telefon']?.toString() ?? '',
+        email: kundeData['email']?.toString() ?? '',
       );
 
       // Das ist der entscheidende Aufruf!
       updateKundeControllers();
 
-      Get.snackbar("Erfolg", "Kunde wurde geladen!");
+      // ID in Einstellungen speichern
+      await _saveEinstellungen();
+
+      if (showSnackbar) {
+        Get.snackbar("Erfolg", "Kunde wurde geladen!");
+      }
     }
   }
 
   // BAUSTELLE
   Future<void> addBaustelleToDatabase() async {
-    await _dbHelper.insertBaustelle({
-      'strasse': baustelle.value.strasse,
-      'plz': baustelle.value.plz,
-      'ort': baustelle.value.ort,
-    });
-    await _loadAllDataFromDatabase();
-    Get.snackbar("Erfolg", "Baustelle wurde gespeichert!");
+    try {
+      await _dbHelper.insertBaustelle({
+        'strasse': baustelle.value.strasse ?? '',
+        'plz': baustelle.value.plz ?? '',
+        'ort': baustelle.value.ort ?? '',
+      });
+      await _loadAllDataFromDatabase();
+      Get.snackbar("Erfolg", "Baustelle wurde gespeichert!");
+    } catch (e) {
+      Get.snackbar(
+        "Fehler",
+        "Baustelle konnte nicht gespeichert werden: ${e.toString()}",
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 4),
+      );
+    }
   }
 
   Future<void> selectBaustelleFromDatabase(int id) async {
@@ -387,40 +518,60 @@ class ScreenInputController extends GetxController {
   void _setupListeners() {
     // Monteur - aktualisiert reactive Objekte
     monteurVornameController.addListener(() {
-      monteur.value =
-          monteur.value.copyWith(vorname: monteurVornameController.text);
+      if (!_isUpdatingControllers) {
+        monteur.value =
+            monteur.value.copyWith(vorname: monteurVornameController.text);
+      }
     });
     monteurNachnameController.addListener(() {
-      monteur.value =
-          monteur.value.copyWith(nachname: monteurNachnameController.text);
+      if (!_isUpdatingControllers) {
+        monteur.value =
+            monteur.value.copyWith(nachname: monteurNachnameController.text);
+      }
     });
     monteurTeleController.addListener(() {
-      monteur.value =
-          monteur.value.copyWith(telefon: monteurTeleController.text);
+      if (!_isUpdatingControllers) {
+        monteur.value =
+            monteur.value.copyWith(telefon: monteurTeleController.text);
+      }
     });
     monteurEmailController.addListener(() {
-      monteur.value =
-          monteur.value.copyWith(email: monteurEmailController.text);
+      if (!_isUpdatingControllers) {
+        monteur.value =
+            monteur.value.copyWith(email: monteurEmailController.text);
+      }
     });
 
     // Kunde - aktualisiert reactive Objekte
     kundeNameController.addListener(() {
-      kunde.value = kunde.value.copyWith(name: kundeNameController.text);
+      if (!_isUpdatingControllers) {
+        kunde.value = kunde.value.copyWith(name: kundeNameController.text);
+      }
     });
     kundeStrasseController.addListener(() {
-      kunde.value = kunde.value.copyWith(strasse: kundeStrasseController.text);
+      if (!_isUpdatingControllers) {
+        kunde.value = kunde.value.copyWith(strasse: kundeStrasseController.text);
+      }
     });
     kundePlzController.addListener(() {
-      kunde.value = kunde.value.copyWith(plz: kundePlzController.text);
+      if (!_isUpdatingControllers) {
+        kunde.value = kunde.value.copyWith(plz: kundePlzController.text);
+      }
     });
     kundeOrtController.addListener(() {
-      kunde.value = kunde.value.copyWith(ort: kundeOrtController.text);
+      if (!_isUpdatingControllers) {
+        kunde.value = kunde.value.copyWith(ort: kundeOrtController.text);
+      }
     });
     kundeTeleController.addListener(() {
-      kunde.value = kunde.value.copyWith(telefon: kundeTeleController.text);
+      if (!_isUpdatingControllers) {
+        kunde.value = kunde.value.copyWith(telefon: kundeTeleController.text);
+      }
     });
     kundeEmailController.addListener(() {
-      kunde.value = kunde.value.copyWith(email: kundeEmailController.text);
+      if (!_isUpdatingControllers) {
+        kunde.value = kunde.value.copyWith(email: kundeEmailController.text);
+      }
     });
 
     // Baustelle - aktualisiert reactive Objekte
@@ -479,7 +630,7 @@ class ScreenInputController extends GetxController {
         Get.snackbar("Erfolg", "Logo wurde gespeichert!");
       }
     } catch (e) {
-      print(e);
+      debugPrint("Fehler beim Speichern des Logos: $e");
       Get.snackbar("Fehler", "Logo konnte nicht gespeichert werden: $e");
     }
   }
@@ -496,8 +647,127 @@ class ScreenInputController extends GetxController {
       einh: 'Stk',
       bezeichnung: '',
       einzelPreis: 0.0,
-      // bilder: [], // falls du Bilder pro Position hast
+      img: [], // Bilder-Liste initialisieren
     ));
+  }
+
+  // ==================== BILDER FUNKTIONEN ====================
+  
+  // Bilder zu einer Position hinzufügen
+  Future<void> addImagesToPosition(int index, {ImageSource source = ImageSource.gallery}) async {
+    try {
+      final List<XFile>? pickedFiles = await _picker.pickMultiImage();
+      
+      if (pickedFiles != null && pickedFiles.isNotEmpty) {
+        final List<String> imagePaths = [];
+        
+        // Bilder in App-Dokumentenverzeichnis kopieren
+        final directory = await getApplicationDocumentsDirectory();
+        
+        for (var pickedFile in pickedFiles) {
+          final String newPath = "${directory.path}/receipt_image_${DateTime.now().millisecondsSinceEpoch}_${pickedFiles.indexOf(pickedFile)}.jpg";
+          final File newFile = await File(pickedFile.path).copy(newPath);
+          imagePaths.add(newFile.path);
+        }
+        
+        // Bestehende Bilder behalten und neue hinzufügen
+        final currentImages = rechnungTextFielde[index].img ?? [];
+        final updatedImages = [...currentImages, ...imagePaths];
+        
+        rechnungTextFielde[index] = rechnungTextFielde[index].copyWith(img: updatedImages);
+        rechnungTextFielde.refresh();
+        
+        Get.snackbar("Erfolg", "${pickedFiles.length} Bild(er) hinzugefügt!");
+      }
+    } catch (e) {
+      debugPrint("Fehler beim Hinzufügen der Bilder: $e");
+      Get.snackbar("Fehler", "Bilder konnten nicht hinzugefügt werden: $e");
+    }
+  }
+
+  // Einzelnes Bild von Kamera hinzufügen
+  Future<void> addImageFromCamera(int index) async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 2000,
+        maxHeight: 2000,
+        imageQuality: 90,
+      );
+      
+      if (pickedFile != null) {
+        final directory = await getApplicationDocumentsDirectory();
+        final String newPath = "${directory.path}/receipt_image_${DateTime.now().millisecondsSinceEpoch}.jpg";
+        final File newFile = await File(pickedFile.path).copy(newPath);
+        
+        final currentImages = rechnungTextFielde[index].img ?? [];
+        final updatedImages = [...currentImages, newFile.path];
+        
+        rechnungTextFielde[index] = rechnungTextFielde[index].copyWith(img: updatedImages);
+        rechnungTextFielde.refresh();
+        
+        Get.snackbar("Erfolg", "Bild hinzugefügt!");
+      }
+    } catch (e) {
+      debugPrint("Fehler beim Hinzufügen des Bildes: $e");
+      Get.snackbar("Fehler", "Bild konnte nicht hinzugefügt werden: $e");
+    }
+  }
+
+  // Bild von einer Position entfernen
+  void removeImageFromPosition(int positionIndex, int imageIndex) {
+    try {
+      final currentImages = rechnungTextFielde[positionIndex].img ?? [];
+      if (imageIndex >= 0 && imageIndex < currentImages.length) {
+        // Datei löschen
+        final imagePath = currentImages[imageIndex];
+        final file = File(imagePath);
+        if (file.existsSync()) {
+          file.deleteSync();
+        }
+        
+        // Aus Liste entfernen
+        final updatedImages = List<String>.from(currentImages)..removeAt(imageIndex);
+        rechnungTextFielde[positionIndex] = rechnungTextFielde[positionIndex].copyWith(img: updatedImages);
+        rechnungTextFielde.refresh();
+        
+        Get.snackbar("Erfolg", "Bild entfernt!");
+      }
+    } catch (e) {
+      debugPrint("Fehler beim Entfernen des Bildes: $e");
+      Get.snackbar("Fehler", "Bild konnte nicht entfernt werden: $e");
+    }
+  }
+
+  // Alle Bilder von einer Position entfernen
+  void removeAllImagesFromPosition(int index) {
+    try {
+      final currentImages = rechnungTextFielde[index].img ?? [];
+      
+      // Alle Dateien löschen
+      for (var imagePath in currentImages) {
+        final file = File(imagePath);
+        if (file.existsSync()) {
+          file.deleteSync();
+        }
+      }
+      
+      rechnungTextFielde[index] = rechnungTextFielde[index].copyWith(img: []);
+      rechnungTextFielde.refresh();
+      
+      Get.snackbar("Erfolg", "Alle Bilder entfernt!");
+    } catch (e) {
+      debugPrint("Fehler beim Entfernen der Bilder: $e");
+      Get.snackbar("Fehler", "Bilder konnten nicht entfernt werden: $e");
+    }
+  }
+
+  // Bilder einer Position abrufen
+  List<String> getImagesForPosition(int index) {
+    if (index >= 0 && index < rechnungTextFielde.length) {
+      return rechnungTextFielde[index].img ?? [];
+    }
+    return [];
   }
 
   void removePositionAt(int index) {
@@ -511,19 +781,28 @@ class ScreenInputController extends GetxController {
 
   // Aktualisiert alle TextController für Monteur
   void updateMonteurControllers() {
+    _isUpdatingControllers = true; // Listener deaktivieren
+    
+    // TextController aktualisieren
     monteurVornameController.text = monteur.value.vorname ?? '';
     monteurNachnameController.text = monteur.value.nachname ?? '';
     monteurTeleController.text = monteur.value.telefon ?? '';
     monteurEmailController.text = monteur.value.email ?? '';
+    
+    _isUpdatingControllers = false; // Listener wieder aktivieren
   }
 
   // Aktualisiert alle TextController für Kunde
   void updateKundeControllers() {
+    _isUpdatingControllers = true; // Listener deaktivieren
+    
     kundeNameController.text = kunde.value.name ?? '';
     kundeStrasseController.text = kunde.value.strasse ?? '';
     kundePlzController.text = kunde.value.plz ?? '';
     kundeOrtController.text = kunde.value.ort ?? '';
     kundeTeleController.text = kunde.value.telefon ?? '';
     kundeEmailController.text = kunde.value.email ?? '';
+    
+    _isUpdatingControllers = false; // Listener wieder aktivieren
   }
 }

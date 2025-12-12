@@ -199,23 +199,39 @@ class SettingsScreen extends StatelessWidget {
                               style: AppText.heading.copyWith(
                                   fontSize: 20.sp, color: AppColors.primary)),
                           SizedBox(height: 20.h),
-                          Obx(() => Center(
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(12.r),
-                                  child: Image.file(
-                                    File(_controller.logo.value!.path),
-                                    height: 120.h,
-                                    width: 240.w,
-                                    fit: BoxFit.contain,
-                                    errorBuilder: (_, __, ___) => Image.asset(
-                                      'assets/system2000_logo.png',
-                                      height: 120.h,
-                                      width: 240.w,
-                                      fit: BoxFit.contain,
-                                    ),
-                                  ),
-                                ),
-                              )),
+                          Obx(() {
+                            final logoPath = _controller.logo.value.path;
+                            return Center(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12.r),
+                                child: logoPath.startsWith('assets/')
+                                    ? Image.asset(
+                                        logoPath,
+                                        height: 120.h,
+                                        width: 240.w,
+                                        fit: BoxFit.contain,
+                                        errorBuilder: (_, __, ___) => Image.asset(
+                                          'assets/system2000_logo.png',
+                                          height: 120.h,
+                                          width: 240.w,
+                                          fit: BoxFit.contain,
+                                        ),
+                                      )
+                                    : Image.file(
+                                        File(logoPath),
+                                        height: 120.h,
+                                        width: 240.w,
+                                        fit: BoxFit.contain,
+                                        errorBuilder: (_, __, ___) => Image.asset(
+                                          'assets/system2000_logo.png',
+                                          height: 120.h,
+                                          width: 240.w,
+                                          fit: BoxFit.contain,
+                                        ),
+                                      ),
+                              ),
+                            );
+                          }),
                           SizedBox(height: 20.h),
                           Row(
                             children: [

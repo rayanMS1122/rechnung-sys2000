@@ -47,14 +47,32 @@ class _NameEingebenScreenState extends State<NameEingebenScreen> {
               title: "Monteur Informationen",
               onSearch: () => _selectMonteur(context),
               onSave: () async {
-                controller.monteur.value = Monteur(
-                  vorname: controller.monteurVornameController.text.trim(),
-                  nachname: controller.monteurNachnameController.text.trim(),
-                  email: controller.monteurEmailController.text.trim(),
-                  telefon: controller.monteurTeleController.text.trim(),
-                );
-                await controller.addMonteurToDatabase();
-                _showSnackBar("Monteur gespeichert!");
+                // Validierung
+                if (controller.monteurVornameController.text.trim().isEmpty) {
+                  _showSnackBar("Vorname ist erforderlich", error: true);
+                  return;
+                }
+                if (controller.monteurNachnameController.text.trim().isEmpty) {
+                  _showSnackBar("Nachname ist erforderlich", error: true);
+                  return;
+                }
+                if (controller.monteurTeleController.text.trim().isEmpty) {
+                  _showSnackBar("Telefon ist erforderlich", error: true);
+                  return;
+                }
+                
+                try {
+                  controller.monteur.value = Monteur(
+                    vorname: controller.monteurVornameController.text.trim(),
+                    nachname: controller.monteurNachnameController.text.trim(),
+                    email: controller.monteurEmailController.text.trim(),
+                    telefon: controller.monteurTeleController.text.trim(),
+                  );
+                  await controller.addMonteurToDatabase();
+                  _showSnackBar("Monteur gespeichert!");
+                } catch (e) {
+                  _showSnackBar("Fehler beim Speichern: $e", error: true);
+                }
               },
             ),
             SizedBox(height: 20.h),
@@ -96,16 +114,38 @@ class _NameEingebenScreenState extends State<NameEingebenScreen> {
               title: "Kunden Informationen",
               onSearch: () => _selectKunde(context),
               onSave: () async {
-                controller.kunde.value = Kunde(
-                  name: controller.kundeNameController.text.trim(),
-                  strasse: controller.kundeStrasseController.text.trim(),
-                  plz: controller.kundePlzController.text.trim(),
-                  ort: controller.kundeOrtController.text.trim(),
-                  telefon: controller.kundeTeleController.text.trim(),
-                  email: controller.kundeEmailController.text.trim(),
-                );
-                await controller.addKundeToDatabase();
-                _showSnackBar("Kunde gespeichert!");
+                // Validierung
+                if (controller.kundeNameController.text.trim().isEmpty) {
+                  _showSnackBar("Name ist erforderlich", error: true);
+                  return;
+                }
+                if (controller.kundeStrasseController.text.trim().isEmpty) {
+                  _showSnackBar("Straße ist erforderlich", error: true);
+                  return;
+                }
+                if (controller.kundePlzController.text.trim().isEmpty) {
+                  _showSnackBar("PLZ ist erforderlich", error: true);
+                  return;
+                }
+                if (controller.kundeOrtController.text.trim().isEmpty) {
+                  _showSnackBar("Ort ist erforderlich", error: true);
+                  return;
+                }
+                
+                try {
+                  controller.kunde.value = Kunde(
+                    name: controller.kundeNameController.text.trim(),
+                    strasse: controller.kundeStrasseController.text.trim(),
+                    plz: controller.kundePlzController.text.trim(),
+                    ort: controller.kundeOrtController.text.trim(),
+                    telefon: controller.kundeTeleController.text.trim(),
+                    email: controller.kundeEmailController.text.trim(),
+                  );
+                  await controller.addKundeToDatabase();
+                  _showSnackBar("Kunde gespeichert!");
+                } catch (e) {
+                  _showSnackBar("Fehler beim Speichern: $e", error: true);
+                }
               },
             ),
             SizedBox(height: 20.h),
@@ -171,12 +211,55 @@ class _NameEingebenScreenState extends State<NameEingebenScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  if (controller.monteurVornameController.text.trim().isEmpty ||
-                      controller.kundeNameController.text.trim().isEmpty) {
-                    _showSnackBar("Vorname und Kundenname erforderlich",
-                        error: true);
+                  // Validierung für Monteur
+                  if (controller.monteurVornameController.text.trim().isEmpty) {
+                    _showSnackBar("Monteur Vorname ist erforderlich", error: true);
                     return;
                   }
+                  if (controller.monteurNachnameController.text.trim().isEmpty) {
+                    _showSnackBar("Monteur Nachname ist erforderlich", error: true);
+                    return;
+                  }
+                  if (controller.monteurTeleController.text.trim().isEmpty) {
+                    _showSnackBar("Monteur Telefon ist erforderlich", error: true);
+                    return;
+                  }
+                  
+                  // Validierung für Kunde
+                  if (controller.kundeNameController.text.trim().isEmpty) {
+                    _showSnackBar("Kundenname ist erforderlich", error: true);
+                    return;
+                  }
+                  if (controller.kundeStrasseController.text.trim().isEmpty) {
+                    _showSnackBar("Kunde Straße ist erforderlich", error: true);
+                    return;
+                  }
+                  if (controller.kundePlzController.text.trim().isEmpty) {
+                    _showSnackBar("Kunde PLZ ist erforderlich", error: true);
+                    return;
+                  }
+                  if (controller.kundeOrtController.text.trim().isEmpty) {
+                    _showSnackBar("Kunde Ort ist erforderlich", error: true);
+                    return;
+                  }
+                  
+                  // Werte aktualisieren
+                  controller.monteur.value = Monteur(
+                    vorname: controller.monteurVornameController.text.trim(),
+                    nachname: controller.monteurNachnameController.text.trim(),
+                    email: controller.monteurEmailController.text.trim(),
+                    telefon: controller.monteurTeleController.text.trim(),
+                  );
+                  
+                  controller.kunde.value = Kunde(
+                    name: controller.kundeNameController.text.trim(),
+                    strasse: controller.kundeStrasseController.text.trim(),
+                    plz: controller.kundePlzController.text.trim(),
+                    ort: controller.kundeOrtController.text.trim(),
+                    telefon: controller.kundeTeleController.text.trim(),
+                    email: controller.kundeEmailController.text.trim(),
+                  );
+                  
                   Get.to(() => const ScreenInput());
                 },
                 style: ElevatedButton.styleFrom(
@@ -321,7 +404,10 @@ class _NameEingebenScreenState extends State<NameEingebenScreen> {
   }
 
   // ==================== SUCHE MONTEUR ====================
-  void _selectMonteur(BuildContext context) {
+  void _selectMonteur(BuildContext context) async {
+    // Daten neu laden bevor Dialog geöffnet wird
+    await controller.reloadAllData();
+    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -353,7 +439,7 @@ class _NameEingebenScreenState extends State<NameEingebenScreen> {
                       final monteur = controller.monteureListe[index];
                       return ListTile(
                         title: Text(
-                            "${monteur['vorname']} ${monteur['nachname']}"),
+                            "${monteur['vorname'] ?? ''} ${monteur['nachname'] ?? ''}"),
                         subtitle: Text(monteur['telefon'] ?? ''),
                         onTap: () async {
                           await controller
@@ -374,7 +460,10 @@ class _NameEingebenScreenState extends State<NameEingebenScreen> {
   }
 
   // ==================== SUCHE KUNDE ====================
-  void _selectKunde(BuildContext context) {
+  void _selectKunde(BuildContext context) async {
+    // Daten neu laden bevor Dialog geöffnet wird
+    await controller.reloadAllData();
+    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -406,7 +495,7 @@ class _NameEingebenScreenState extends State<NameEingebenScreen> {
                       return ListTile(
                         title: Text(kunde['name'] ?? ''),
                         subtitle: Text(
-                            "${kunde['strasse']}, ${kunde['plz']} ${kunde['ort']}"),
+                            "${kunde['strasse'] ?? ''}, ${kunde['plz'] ?? ''} ${kunde['ort'] ?? ''}"),
                         onTap: () async {
                           await controller.selectKundeFromDatabase(kunde['id']);
                           Navigator.pop(context);

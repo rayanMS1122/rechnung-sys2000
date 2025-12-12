@@ -7,105 +7,58 @@ class ReceiptRow extends StatelessWidget {
   final String bezeichnung;
   final String einzelPreis;
   final String gesamtPreis;
+  final bool isHeader;
 
-  const ReceiptRow(this.pos, this.menge, this.einh, this.bezeichnung,
-      this.einzelPreis, this.gesamtPreis,
-      {super.key});
+  const ReceiptRow(
+    this.pos,
+    this.menge,
+    this.einh,
+    this.bezeichnung,
+    this.einzelPreis,
+    this.gesamtPreis, {
+    super.key,
+    this.isHeader = false,
+  });
 
   @override
   Widget build(BuildContext context) {
+    return Table(
+      columnWidths: const {
+        0: FixedColumnWidth(40), // POS
+        1: FixedColumnWidth(55), // MENGE
+        2: FixedColumnWidth(50), // EINHEIT
+        3: FlexColumnWidth(3), // BEZEICHNUNG (flexibel)
+        4: FixedColumnWidth(60), // EP
+        5: FixedColumnWidth(65), // GP
+      },
+      children: [
+        TableRow(
+          children: [
+            _buildCell(pos, TextAlign.left),
+            _buildCell(menge, TextAlign.right),
+            _buildCell(einh, TextAlign.center),
+            _buildCell(bezeichnung, TextAlign.left),
+            _buildCell(einzelPreis, TextAlign.right),
+            _buildCell(gesamtPreis, TextAlign.right),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCell(String text, TextAlign alignment) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 2.5),
-      child: Row(
-        children: [
-          // POS - Feste Breite
-          SizedBox(
-            width: 35,
-            child: Text(
-              pos,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Colors.black54,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          const SizedBox(width: 4),
-
-          // MENGE - Feste Breite
-          SizedBox(
-            width: 50,
-            child: Text(
-              menge,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Colors.black54,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.right,
-            ),
-          ),
-          const SizedBox(width: 4),
-
-          // EINHEIT - Feste Breite
-          SizedBox(
-            width: 45,
-            child: Text(
-              einh,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Colors.black54,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          const SizedBox(width: 4),
-
-          // BEZEICHNUNG - Flexible, nimmt verfügbaren Platz
-          Expanded(
-            flex: 3,
-            child: Text(
-              bezeichnung,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Colors.black54,
-                fontWeight: FontWeight.bold,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: 4),
-
-          // EINZELPREIS - Feste Breite
-          SizedBox(
-            width: 55,
-            child: Text(
-              einzelPreis,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Colors.black54,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.right,
-            ),
-          ),
-          const SizedBox(width: 4),
-
-          // GESAMTPREIS - Feste Breite
-          SizedBox(
-            width: 60,
-            child: Text(
-              gesamtPreis,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.right,
-            ),
-          ),
-        ],
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: isHeader ? 12 : 13,
+          color: isHeader ? Colors.black87 : Colors.black54,
+          fontWeight: isHeader ? FontWeight.w700 : FontWeight.w600,
+        ),
+        textAlign: alignment,
+        maxLines: isHeader ? 1 : 3,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }

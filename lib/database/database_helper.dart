@@ -1,5 +1,8 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -9,20 +12,36 @@ class DatabaseHelper {
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDB('assets/test_DB/test');
+    _database = await _initDB();
     return _database!;
   }
 
-  Future<Database> _initDB(String filePath) async {
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, filePath);
+  Future<Database> _initDB() async {
+    try {
+      final dbPath = await getDatabasesPath();
+      final dbName = 'assets/test_DB/test';
+      final path = join(dbPath, dbName);
 
-    return await openDatabase(
-      path,
-      version: 1,
-      onCreate: _createDB,
-      onUpgrade: _onUpgrade,
-    );
+      debugPrint('Datenbank-Pfad: $path');
+
+      // Prüfen ob Datenbank bereits existiert
+      final exists = await databaseExists(path);
+      debugPrint('Datenbank existiert: $exists');
+
+      // Datenbank öffnen/erstellen
+      final db = await openDatabase(
+        path,
+        version: 2, // Version erhöht für neue Felder
+        onCreate: _createDB,
+        onUpgrade: _onUpgrade,
+      );
+
+      debugPrint('Datenbank erfolgreich geöffnet');
+      return db;
+    } catch (e) {
+      debugPrint('Fehler bei Datenbank-Initialisierung: $e');
+      rethrow;
+    }
   }
 
   Future _createDB(Database db, int version) async {
@@ -89,7 +108,10 @@ class DatabaseHelper {
     baustelle_ort TEXT,
     
     logo_path TEXT,
-    enable_editing INTEGER DEFAULT 0  -- 0 = false, 1 = true
+    enable_editing INTEGER DEFAULT 0,  -- 0 = false, 1 = true
+    
+    last_monteur_id INTEGER,  -- ID des zuletzt ausgewählten Monteurs
+    last_kunde_id INTEGER     -- ID des zuletzt ausgewählten Kunden
   )
 ''');
   }
@@ -97,28 +119,15 @@ class DatabaseHelper {
 // NEU: Wird aufgerufen, wenn Version von 1 auf 2 erhöht wird
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
-      await db.execute('''
-        CREATE TABLE einstellungen (
-          id INTEGER PRIMARY KEY CHECK (id = 1),
-          firma_name TEXT,
-          firma_strasse TEXT,
-          firma_plz TEXT,
-          firma_ort TEXT,
-          firma_telefon TEXT,
-          firma_email TEXT,
-          firma_website TEXT,
-          
-          baustelle_strasse TEXT,
-          baustelle_plz TEXT,
-          baustelle_ort TEXT,
-          
-          logo_path TEXT,
-          enable_editing INTEGER DEFAULT 0
-        )
-      ''');
-
-      // Optional: Bestehende Daten aus alter Logik migrieren (falls du vorher SharedPreferences hattest)
-      // Hier leer, weil wir neu starten
+      // Neue Spalten zur bestehenden Tabelle hinzufügen
+      try {
+        await db.execute('ALTER TABLE einstellungen ADD COLUMN last_monteur_id INTEGER');
+        await db.execute('ALTER TABLE einstellungen ADD COLUMN last_kunde_id INTEGER');
+        debugPrint('Datenbank erfolgreich auf Version 2 aktualisiert');
+      } catch (e) {
+        debugPrint('Fehler beim Upgrade der Datenbank: $e');
+        // Falls ALTER TABLE fehlschlägt (z.B. Spalten existieren bereits), ignorieren
+      }
     }
   }
 
@@ -148,8 +157,15 @@ class DatabaseHelper {
 
   // ====================== FIRMA ======================
   Future<int> insertFirma(Map<String, dynamic> row) async {
-    final db = await instance.database;
-    return await db.insert('firma', row);
+    try {
+      final db = await instance.database;
+      final id = await db.insert('firma', row);
+      debugPrint('Firma gespeichert mit ID: $id');
+      return id;
+    } catch (e) {
+      debugPrint('Fehler beim Speichern der Firma: $e');
+      rethrow;
+    }
   }
 
   Future<List<Map<String, dynamic>>> queryAllFirmen() async {
@@ -176,8 +192,15 @@ class DatabaseHelper {
 
   // ====================== KUNDE ======================
   Future<int> insertKunde(Map<String, dynamic> row) async {
-    final db = await instance.database;
-    return await db.insert('kunde', row);
+    try {
+      final db = await instance.database;
+      final id = await db.insert('kunde', row);
+      debugPrint('Kunde gespeichert mit ID: $id');
+      return id;
+    } catch (e) {
+      debugPrint('Fehler beim Speichern des Kunden: $e');
+      rethrow;
+    }
   }
 
   Future<List<Map<String, dynamic>>> queryAllKunden() async {
@@ -204,8 +227,15 @@ class DatabaseHelper {
 
   // ====================== MONTEUR ======================
   Future<int> insertMonteur(Map<String, dynamic> row) async {
-    final db = await instance.database;
-    return await db.insert('monteur', row);
+    try {
+      final db = await instance.database;
+      final id = await db.insert('monteur', row);
+      debugPrint('Monteur gespeichert mit ID: $id');
+      return id;
+    } catch (e) {
+      debugPrint('Fehler beim Speichern des Monteurs: $e');
+      rethrow;
+    }
   }
 
   Future<List<Map<String, dynamic>>> queryAllMonteure() async {
@@ -232,8 +262,15 @@ class DatabaseHelper {
 
   // ====================== BAUSTELLE ======================
   Future<int> insertBaustelle(Map<String, dynamic> row) async {
-    final db = await instance.database;
-    return await db.insert('baustelle', row);
+    try {
+      final db = await instance.database;
+      final id = await db.insert('baustelle', row);
+      debugPrint('Baustelle gespeichert mit ID: $id');
+      return id;
+    } catch (e) {
+      debugPrint('Fehler beim Speichern der Baustelle: $e');
+      rethrow;
+    }
   }
 
   Future<List<Map<String, dynamic>>> queryAllBaustellen() async {
@@ -261,21 +298,23 @@ class DatabaseHelper {
 
   // ====================== Hilfsfunktion zum Debuggen ======================
   Future<void> printAllData() async {
-    final firmen = await queryAllFirmen();
-    final kunden = await queryAllKunden();
-    final monteure = await queryAllMonteure();
-    final baustellen = await queryAllBaustellen();
+    if (kDebugMode) {
+      final firmen = await queryAllFirmen();
+      final kunden = await queryAllKunden();
+      final monteure = await queryAllMonteure();
+      final baustellen = await queryAllBaustellen();
 
-    print('=== Firmen (${firmen.length}) ===');
-    for (var f in firmen) print(f);
+      debugPrint('=== Firmen (${firmen.length}) ===');
+      for (var f in firmen) debugPrint(f.toString());
 
-    print('=== Kunden (${kunden.length}) ===');
-    for (var k in kunden) print(k);
+      debugPrint('=== Kunden (${kunden.length}) ===');
+      for (var k in kunden) debugPrint(k.toString());
 
-    print('=== Monteure (${monteure.length}) ===');
-    for (var m in monteure) print(m);
+      debugPrint('=== Monteure (${monteure.length}) ===');
+      for (var m in monteure) debugPrint(m.toString());
 
-    print('=== Baustellen (${baustellen.length}) ===');
-    for (var b in baustellen) print(b);
+      debugPrint('=== Baustellen (${baustellen.length}) ===');
+      for (var b in baustellen) debugPrint(b.toString());
+    }
   }
 }

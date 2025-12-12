@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
+import 'package:intl/intl.dart';
 import 'package:reciepts/controller/screen_input_controller.dart';
 import 'package:reciepts/controller/unterschrift_controller.dart';
 import 'package:reciepts/widgets/reciept_row.dart';
@@ -24,12 +25,21 @@ class _ReceiptContentState extends State<ReceiptContent> {
   final UnterschriftController _unterschriftController = Get.find();
   final ScreenInputController _screenInputController = Get.find();
   double gesamtBetrag = 0;
+  
+  // Deutsche Zahlenformatierung (Komma statt Punkt, immer 2 Dezimalstellen)
+  final NumberFormat _numberFormat = NumberFormat('#,##0.00', 'de_DE');
 
   void calcGesamtBetrag() {
     gesamtBetrag = 0;
     for (var element in widget.receiptData) {
       gesamtBetrag += element.gesamtPreis;
     }
+  }
+  
+  // Hilfsfunktion für deutsche Zahlenformatierung
+  String _formatNumber(double value) {
+    // NumberFormat mit 'de_DE' verwendet bereits Komma als Dezimaltrennzeichen
+    return _numberFormat.format(value);
   }
 
   @override
@@ -40,6 +50,9 @@ class _ReceiptContentState extends State<ReceiptContent> {
 
   @override
   Widget build(BuildContext context) {
+    // Gesamtbetrag bei jedem Build neu berechnen
+    calcGesamtBetrag();
+    
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -52,13 +65,25 @@ class _ReceiptContentState extends State<ReceiptContent> {
               padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
               child: Obx(() {
                 final logoFile = _screenInputController.logo.value;
-                if (logoFile.path.isNotEmpty &&
-                    File(logoFile.path).existsSync()) {
-                  return Image.file(
-                    File(logoFile.path),
-                    fit: BoxFit.fitWidth,
-                    height: 100,
-                  );
+                if (logoFile.path.isNotEmpty) {
+                  // Prüfe ob es ein Asset-Pfad ist
+                  if (logoFile.path.startsWith('assets/')) {
+                    return Image.asset(
+                      logoFile.path,
+                      fit: BoxFit.fitWidth,
+                      height: 100,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const SizedBox.shrink();
+                      },
+                    );
+                  } else if (File(logoFile.path).existsSync()) {
+                    // Normale Datei
+                    return Image.file(
+                      File(logoFile.path),
+                      fit: BoxFit.fitWidth,
+                      height: 100,
+                    );
+                  }
                 }
                 return const SizedBox.shrink();
               }),
@@ -66,7 +91,7 @@ class _ReceiptContentState extends State<ReceiptContent> {
           ),
           const SizedBox(height: 30),
 
-          // Firma Section → jetzt mit Obx und firma.value
+          // Firma Section
           _buildSectionTitle("Firma"),
           const SizedBox(height: 10),
           Obx(() => _buildCenteredText(
@@ -92,7 +117,8 @@ class _ReceiptContentState extends State<ReceiptContent> {
                 )),
           ),
           const SizedBox(height: 30),
-          // Baustelle Section → jetzt korrekt mit baustelle.value
+
+          // Baustelle Section
           _buildSectionTitle("Baustelle Infos"),
           const SizedBox(height: 10),
           Center(
@@ -106,13 +132,12 @@ class _ReceiptContentState extends State<ReceiptContent> {
                         _screenInputController.baustelle.value.plz != null)
                       _buildInfoText(
                           "${_screenInputController.baustelle.value.plz} ${_screenInputController.baustelle.value.ort ?? ""}"),
-                    // Optional: Nur Ort extra, falls du PLZ+Ort zusammen willst
                   ],
                 )),
           ),
           const SizedBox(height: 33),
 
-          // Receipt Items Header
+          // Receipt Items Header - MIT isHeader: true
           ReceiptRow(
             'POS',
             'MENGE',
@@ -120,6 +145,7 @@ class _ReceiptContentState extends State<ReceiptContent> {
             'BEZEICHNUNG',
             'EP',
             'GP',
+            isHeader: true,
           ),
           const SizedBox(height: 12),
           const Divider(),
@@ -128,16 +154,57 @@ class _ReceiptContentState extends State<ReceiptContent> {
           ListView.builder(
             itemBuilder: (context, index) {
               final data = widget.receiptData[index];
-              return Padding(
-                padding: const EdgeInsets.only(top: 12.0),
-                child: ReceiptRow(
-                  (index + 1).toString().padLeft(2, '0'),
-                  data.menge.toStringAsFixed(2),
-                  data.einh.isNotEmpty ? data.einh : '-',
-                  data.bezeichnung.isNotEmpty ? data.bezeichnung : '-',
-                  data.einzelPreis.toStringAsFixed(2),
-                  data.gesamtPreis.toStringAsFixed(2),
-                ),
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12.0),
+                    child: ReceiptRow(
+                      (index + 1).toString().padLeft(2, '0'),
+                      _formatNumber(data.menge),
+                      data.einh.isNotEmpty ? data.einh : '-',
+                      data.bezeichnung.isNotEmpty ? data.bezeichnung : '-',
+                      _formatNumber(data.einzelPreis),
+                      _formatNumber(data.gesamtPreis),
+                      isHeader: false,
+                    ),
+                  ),
+                  // Bilder für diese Position anzeigen
+                  if (data.img != null && data.img!.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 80,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: data.img!.length,
+                        itemBuilder: (context, imgIndex) {
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8.0),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(6),
+                              child: Image.file(
+                                File(data.img![imgIndex]),
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    width: 80,
+                                    height: 80,
+                                    color: Colors.grey.shade300,
+                                    child: const Icon(Icons.broken_image,
+                                        color: Colors.grey),
+                                  );
+                                },
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                ],
               );
             },
             itemCount: widget.receiptData.length,
@@ -147,7 +214,7 @@ class _ReceiptContentState extends State<ReceiptContent> {
           const SizedBox(height: 10),
           const Divider(),
 
-// Total Amount
+          // Total Amount
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Row(
@@ -159,7 +226,7 @@ class _ReceiptContentState extends State<ReceiptContent> {
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                 ),
                 Text(
-                  "€ ${gesamtBetrag.toStringAsFixed(2)}",
+                  "${_formatNumber(gesamtBetrag)} €",
                   style: const TextStyle(
                       fontSize: 14, fontWeight: FontWeight.bold),
                 ),
@@ -168,7 +235,77 @@ class _ReceiptContentState extends State<ReceiptContent> {
           ),
           const SizedBox(height: 30),
 
+          // Kunde & Monteur Section
+          _buildSectionTitle("Kunde & Monteur"),
+          const SizedBox(height: 15),
+          Obx(() => Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Kunde Info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Kunde:",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        if (_screenInputController.kunde.value.name.isNotEmpty)
+                          _buildInfoText(
+                              _screenInputController.kunde.value.name),
+                        if (_screenInputController.kunde.value.strasse.isNotEmpty)
+                          _buildInfoText(
+                              _screenInputController.kunde.value.strasse),
+                        if (_screenInputController.kunde.value.plz.isNotEmpty ||
+                            _screenInputController.kunde.value.ort.isNotEmpty)
+                          _buildInfoText(
+                              "${_screenInputController.kunde.value.plz} ${_screenInputController.kunde.value.ort}".trim()),
+                        if (_screenInputController.kunde.value.telefon.isNotEmpty)
+                          _buildInfoText(
+                              "Tel: ${_screenInputController.kunde.value.telefon}"),
+                        if (_screenInputController.kunde.value.email.isNotEmpty)
+                          _buildInfoText(
+                              "E-Mail: ${_screenInputController.kunde.value.email}"),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  // Monteur Info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Monteur:",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        if (_screenInputController.monteur.value.vollerName.isNotEmpty)
+                          _buildInfoText(
+                              _screenInputController.monteur.value.vollerName),
+                        if (_screenInputController.monteur.value.telefon.isNotEmpty)
+                          _buildInfoText(
+                              "Tel: ${_screenInputController.monteur.value.telefon}"),
+                        if (_screenInputController.monteur.value.email.isNotEmpty)
+                          _buildInfoText(
+                              "E-Mail: ${_screenInputController.monteur.value.email}"),
+                      ],
+                    ),
+                  ),
+                ],
+              )),
+          const SizedBox(height: 30),
+
           // Signatures Section
+          _buildSectionTitle("Unterschriften"),
+          const SizedBox(height: 15),
           Obx(
             () => Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,

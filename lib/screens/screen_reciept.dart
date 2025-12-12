@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -28,6 +29,14 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
   final UnterschriftController _unterschriftController = Get.find();
   final ScreenInputController _screenInputController = Get.find();
   bool _isProcessing = false;
+  
+  // Deutsche Zahlenformatierung (Komma statt Punkt, immer 2 Dezimalstellen)
+  final NumberFormat _numberFormat = NumberFormat('#,##0.00', 'de_DE');
+  
+  // Hilfsfunktion für deutsche Zahlenformatierung
+  String _formatNumber(double value) {
+    return _numberFormat.format(value);
+  }
 
   // Dein PDF-Generator bleibt unverändert (funktioniert super!)
   Future<void> _generateAndSharePdf() async {
@@ -37,9 +46,31 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     try {
       final ocrFont =
           pw.Font.ttf(await rootBundle.load("assets/fonts/cour.ttf"));
-      final Uint8List logoBytes =
-          await _screenInputController.logo.value!.readAsBytes();
-      final logoImage = pw.MemoryImage(logoBytes);
+      
+      // Logo mit Null-Check laden
+      Uint8List? logoBytes;
+      pw.MemoryImage? logoImage;
+      if (_screenInputController.logo.value.path.isNotEmpty) {
+        try {
+          final logoPath = _screenInputController.logo.value.path;
+          // Prüfe ob es ein Asset-Pfad ist
+          if (logoPath.startsWith('assets/')) {
+            // Asset-Logo laden
+            final byteData = await rootBundle.load(logoPath);
+            logoBytes = byteData.buffer.asUint8List();
+            logoImage = pw.MemoryImage(logoBytes);
+          } else {
+            // Normale Datei
+            final file = File(logoPath);
+            if (await file.exists()) {
+              logoBytes = await file.readAsBytes();
+              logoImage = pw.MemoryImage(logoBytes);
+            }
+          }
+        } catch (e) {
+          debugPrint("Fehler beim Laden des Logos: $e");
+        }
+      }
 
       final pdf = pw.Document();
       const int linesPerPage = 65;
@@ -65,11 +96,11 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                 marginTop: 40,
                 marginBottom: 60),
             build: (pw.Context context) => [
-              if (pageIndex == 0)
+              if (pageIndex == 0 && logoImage != null)
                 pw.Center(
                     child: pw.Image(logoImage,
                         width: 150, height: 150, fit: pw.BoxFit.contain)),
-              if (pageIndex == 0) pw.SizedBox(height: 30),
+              if (pageIndex == 0 && logoImage != null) pw.SizedBox(height: 30),
               if (pageIndex == 0) ...[
                 pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -143,24 +174,70 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
               if (pages.length > 1) pw.SizedBox(height: 10),
               _buildRow([
                 'POS',
-                'MENGE     ',
+                'MENGE',
                 'EINH',
                 'BEZEICHNUNG',
                 'EINZELPREIS',
                 'GESAMTPREIS'
               ], ocrFont, isHeader: true),
               pw.Divider(height: 10, thickness: 1.5),
-              ...pageData.asMap().entries.map((e) {
+              ...pageData.asMap().entries.expand((e) {
                 final int globalIndex = pageIndex * linesPerPage + e.key + 1;
                 final item = e.value;
-                return _buildRow([
-                  globalIndex.toString().padLeft(3),
-                  item.menge.toStringAsFixed(2).padLeft(9),
-                  item.einh.isNotEmpty ? item.einh : '-',
-                  item.bezeichnung.isNotEmpty ? item.bezeichnung : '-',
-                  '${item.einzelPreis.toStringAsFixed(2)} €',
-                  '${item.gesamtPreis.toStringAsFixed(2)} €',
-                ], ocrFont);
+                final List<pw.Widget> widgets = [
+                  _buildRow([
+                    globalIndex.toString().padLeft(2, '0'),
+                    _formatNumber(item.menge),
+                    item.einh.isNotEmpty ? item.einh : '-',
+                    item.bezeichnung.isNotEmpty ? item.bezeichnung : '-',
+                    '${_formatNumber(item.einzelPreis)} €',
+                    '${_formatNumber(item.gesamtPreis)} €',
+                  ], ocrFont),
+                ];
+                
+                // Bilder für diese Position hinzufügen
+                if (item.img != null && item.img!.isNotEmpty) {
+                  widgets.add(pw.SizedBox(height: 8));
+                  
+                  // Bilder synchron laden
+                  final List<pw.Widget> imageWidgets = [];
+                  for (var imagePath in item.img!) {
+                    try {
+                      final file = File(imagePath);
+                      if (file.existsSync()) {
+                        final imageBytes = file.readAsBytesSync();
+                        imageWidgets.add(
+                          pw.Container(
+                            width: 80,
+                            height: 80,
+                            decoration: pw.BoxDecoration(
+                              border: pw.Border.all(color: PdfColors.grey300, width: 1),
+                            ),
+                            child: pw.Image(
+                              pw.MemoryImage(imageBytes),
+                              fit: pw.BoxFit.cover,
+                            ),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      debugPrint("Fehler beim Laden des Bildes für PDF: $e");
+                    }
+                  }
+                  
+                  if (imageWidgets.isNotEmpty) {
+                    widgets.add(
+                      pw.Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: imageWidgets,
+                      ),
+                    );
+                    widgets.add(pw.SizedBox(height: 8));
+                  }
+                }
+                
+                return widgets;
               }),
               if (!isLastPage) ...[
                 pw.Divider(thickness: 1.5),
@@ -178,9 +255,101 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                   '',
                   'GESAMTBETRAG',
                   '',
-                  '${widget.receiptData.fold(0.0, (sum, e) => sum + e.gesamtPreis).toStringAsFixed(2)} €'
+                  '${_formatNumber(widget.receiptData.fold(0.0, (sum, e) => sum + e.gesamtPreis))} €'
                 ], ocrFont, isHeader: true),
-                pw.SizedBox(height: 40),
+                pw.SizedBox(height: 30),
+                // Kunde & Monteur Informationen
+                pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    // Kunde Info
+                    pw.Expanded(
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            "Kunde:",
+                            style: pw.TextStyle(
+                              font: ocrFont,
+                              fontSize: 12,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
+                          pw.SizedBox(height: 6),
+                          if (_screenInputController.kunde.value.name.isNotEmpty)
+                            pw.Text(
+                              _screenInputController.kunde.value.name,
+                              style: pw.TextStyle(font: ocrFont, fontSize: 10),
+                            ),
+                          if (_screenInputController.kunde.value.strasse.isNotEmpty)
+                            pw.Text(
+                              _screenInputController.kunde.value.strasse,
+                              style: pw.TextStyle(font: ocrFont, fontSize: 10),
+                            ),
+                          if (_screenInputController.kunde.value.plz.isNotEmpty ||
+                              _screenInputController.kunde.value.ort.isNotEmpty)
+                            pw.Text(
+                              "${_screenInputController.kunde.value.plz} ${_screenInputController.kunde.value.ort}".trim(),
+                              style: pw.TextStyle(font: ocrFont, fontSize: 10),
+                            ),
+                          if (_screenInputController.kunde.value.telefon.isNotEmpty)
+                            pw.Text(
+                              "Tel: ${_screenInputController.kunde.value.telefon}",
+                              style: pw.TextStyle(font: ocrFont, fontSize: 10),
+                            ),
+                          if (_screenInputController.kunde.value.email.isNotEmpty)
+                            pw.Text(
+                              "E-Mail: ${_screenInputController.kunde.value.email}",
+                              style: pw.TextStyle(font: ocrFont, fontSize: 10),
+                            ),
+                        ],
+                      ),
+                    ),
+                    pw.SizedBox(width: 30),
+                    // Monteur Info
+                    pw.Expanded(
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            "Monteur:",
+                            style: pw.TextStyle(
+                              font: ocrFont,
+                              fontSize: 12,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
+                          pw.SizedBox(height: 6),
+                          if (_screenInputController.monteur.value.vollerName.isNotEmpty)
+                            pw.Text(
+                              _screenInputController.monteur.value.vollerName,
+                              style: pw.TextStyle(font: ocrFont, fontSize: 10),
+                            ),
+                          if (_screenInputController.monteur.value.telefon.isNotEmpty)
+                            pw.Text(
+                              "Tel: ${_screenInputController.monteur.value.telefon}",
+                              style: pw.TextStyle(font: ocrFont, fontSize: 10),
+                            ),
+                          if (_screenInputController.monteur.value.email.isNotEmpty)
+                            pw.Text(
+                              "E-Mail: ${_screenInputController.monteur.value.email}",
+                              style: pw.TextStyle(font: ocrFont, fontSize: 10),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                pw.SizedBox(height: 30),
+                pw.Text(
+                  "Unterschriften:",
+                  style: pw.TextStyle(
+                    font: ocrFont,
+                    fontSize: 12,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 15),
                 pw.Table(
                   tableWidth: pw.TableWidth.min,
                   border: pw.TableBorder.symmetric(inside: pw.BorderSide.none),
@@ -265,7 +434,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       } else {
         final dir = await getTemporaryDirectory();
         final file = File(
-            "${dir.path}/Rechnung_${DateTime.now().millisecondsSinceEpoch}.pdf");
+            "${dir.path}/Rechnung_${_screenInputController.kunde.value?.name}.pdf");
         await file.writeAsBytes(pdfBytes);
         await Share.shareXFiles([XFile(file.path)],
             text: 'Hier ist Ihre Rechnung');
@@ -281,25 +450,100 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
   pw.Widget _buildRow(List<String> cells, pw.Font font,
       {bool isHeader = false}) {
     return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 3),
+      padding: const pw.EdgeInsets.symmetric(vertical: 4),
       child: pw.Row(
-        children: cells.map((text) {
-          final bool isRight = text.contains('€') ||
-              ['GESAMT', 'EINZELPREIS', 'GESAMTPREIS', 'MENGE     ']
-                  .contains(text.trim());
-          return pw.Expanded(
+        children: [
+          // POS - 8% der Breite
+          pw.SizedBox(
+            width: 40,
             child: pw.Text(
-              text,
+              cells[0],
               style: pw.TextStyle(
                 font: font,
-                fontSize: isHeader ? 11 : 10,
+                fontSize: isHeader ? 10 : 9,
                 fontWeight:
                     isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
               ),
-              textAlign: isRight ? pw.TextAlign.right : pw.TextAlign.left,
+              textAlign: pw.TextAlign.left,
             ),
-          );
-        }).toList(),
+          ),
+          pw.SizedBox(width: 8),
+          // MENGE - 12% der Breite
+          pw.SizedBox(
+            width: 60,
+            child: pw.Text(
+              cells[1],
+              style: pw.TextStyle(
+                font: font,
+                fontSize: isHeader ? 10 : 9,
+                fontWeight:
+                    isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
+              ),
+              textAlign: pw.TextAlign.right,
+            ),
+          ),
+          pw.SizedBox(width: 8),
+          // EINH - 10% der Breite
+          pw.SizedBox(
+            width: 50,
+            child: pw.Text(
+              cells[2],
+              style: pw.TextStyle(
+                font: font,
+                fontSize: isHeader ? 10 : 9,
+                fontWeight:
+                    isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
+              ),
+              textAlign: pw.TextAlign.left,
+            ),
+          ),
+          pw.SizedBox(width: 8),
+          // BEZEICHNUNG - Nimmt den restlichen Platz
+          pw.Expanded(
+            child: pw.Text(
+              cells[3],
+              style: pw.TextStyle(
+                font: font,
+                fontSize: isHeader ? 10 : 9,
+                fontWeight:
+                    isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
+              ),
+              textAlign: pw.TextAlign.left,
+              maxLines: 2,
+            ),
+          ),
+          pw.SizedBox(width: 8),
+          // EINZELPREIS - 12% der Breite
+          pw.SizedBox(
+            width: 70,
+            child: pw.Text(
+              cells[4],
+              style: pw.TextStyle(
+                font: font,
+                fontSize: isHeader ? 10 : 9,
+                fontWeight:
+                    isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
+              ),
+              textAlign: pw.TextAlign.right,
+            ),
+          ),
+          pw.SizedBox(width: 8),
+          // GESAMTPREIS - 12% der Breite
+          pw.SizedBox(
+            width: 75,
+            child: pw.Text(
+              cells[5],
+              style: pw.TextStyle(
+                font: font,
+                fontSize: isHeader ? 10 : 9,
+                fontWeight:
+                    isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
+                color: PdfColors.black,
+              ),
+              textAlign: pw.TextAlign.right,
+            ),
+          ),
+        ],
       ),
     );
   }
