@@ -30,7 +30,7 @@ class _UnterschrftScreenState extends State<UnterschrftScreen> {
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
-    _controller.dispose();
+
     super.dispose();
   }
 

@@ -1,10 +1,9 @@
-// models/monteur.dart
 class Monteur {
-  int? id;
-  String vorname;
-  String nachname;
-  String telefon;
-  String email;
+  final int? id;
+  final String vorname;
+  final String nachname;
+  final String telefon;
+  final String email;
 
   Monteur({
     this.id,
@@ -31,4 +30,20 @@ class Monteur {
         'telefon': telefon,
         'email': email,
       };
+
+  Monteur copyWith({
+    int? id,
+    String? vorname,
+    String? nachname,
+    String? telefon,
+    String? email,
+  }) {
+    return Monteur(
+      id: id ?? this.id,
+      vorname: vorname ?? this.vorname,
+      nachname: nachname ?? this.nachname,
+      telefon: telefon ?? this.telefon,
+      email: email ?? this.email,
+    );
+  }
 }

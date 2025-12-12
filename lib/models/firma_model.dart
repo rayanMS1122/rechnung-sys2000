@@ -1,13 +1,13 @@
 // models/firma.dart
 class Firma {
-  int? id; // Normalerweise immer 1
-  String name;
-  String strasse;
-  String plz;
-  String ort;
-  String telefon;
-  String email;
-  String website;
+  final int? id;
+  final String name;
+  final String strasse;
+  final String plz;
+  final String ort;
+  final String telefon;
+  final String email;
+  final String website;
 
   Firma({
     this.id,
@@ -41,4 +41,25 @@ class Firma {
         'email': email,
         'website': website,
       };
+
+  Firma copyWith({
+    int? id,
+    String? name,
+    String? strasse,
+    String? plz,
+    String? ort,
+    String? telefon,
+    String? email,
+    String? website,
+  }) {
+    return Firma(
+      name: name ?? this.name,
+      strasse: strasse ?? this.strasse,
+      plz: plz ?? this.plz,
+      ort: ort ?? this.ort,
+      telefon: telefon ?? this.telefon,
+      email: email ?? this.email,
+      website: website ?? this.website,
+    );
+  }
 }

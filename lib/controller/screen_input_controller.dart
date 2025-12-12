@@ -295,36 +295,40 @@ class ScreenInputController extends GetxController {
   void _setupListeners() {
     // Monteur - aktualisiert reactive Objekte
     monteurVornameController.addListener(() {
-      monteur.value.vorname = monteurVornameController.text;
+      monteur.value =
+          monteur.value.copyWith(vorname: monteurVornameController.text);
     });
     monteurNachnameController.addListener(() {
-      monteur.value.nachname = monteurNachnameController.text;
+      monteur.value =
+          monteur.value.copyWith(nachname: monteurNachnameController.text);
     });
     monteurTeleController.addListener(() {
-      monteur.value.telefon = monteurTeleController.text;
+      monteur.value =
+          monteur.value.copyWith(telefon: monteurTeleController.text);
     });
     monteurEmailController.addListener(() {
-      monteur.value.email = monteurEmailController.text;
+      monteur.value =
+          monteur.value.copyWith(email: monteurEmailController.text);
     });
 
     // Kunde - aktualisiert reactive Objekte
     kundeNameController.addListener(() {
-      kunde.value.name = kundeNameController.text;
+      kunde.value = kunde.value.copyWith(name: kundeNameController.text);
     });
     kundeStrasseController.addListener(() {
-      kunde.value.strasse = kundeStrasseController.text;
+      kunde.value = kunde.value.copyWith(strasse: kundeStrasseController.text);
     });
     kundePlzController.addListener(() {
-      kunde.value.plz = kundePlzController.text;
+      kunde.value = kunde.value.copyWith(plz: kundePlzController.text);
     });
     kundeOrtController.addListener(() {
-      kunde.value.ort = kundeOrtController.text;
+      kunde.value = kunde.value.copyWith(ort: kundeOrtController.text);
     });
     kundeTeleController.addListener(() {
-      kunde.value.telefon = kundeTeleController.text;
+      kunde.value = kunde.value.copyWith(telefon: kundeTeleController.text);
     });
     kundeEmailController.addListener(() {
-      kunde.value.email = kundeEmailController.text;
+      kunde.value = kunde.value.copyWith(email: kundeEmailController.text);
     });
 
     // Baustelle - aktualisiert reactive Objekte
@@ -337,28 +341,26 @@ class ScreenInputController extends GetxController {
     baustelleOrtController.addListener(() {
       baustelle.value.ort = baustelleOrtController.text;
     });
-
-    // Firma - aktualisiert reactive Objekte
     firmaNameController.addListener(() {
-      firma.value.name = firmaNameController.text;
+      firma.value = firma.value.copyWith(name: firmaNameController.text);
     });
     firmaStrasseController.addListener(() {
-      firma.value.strasse = firmaStrasseController.text;
+      firma.value = firma.value.copyWith(strasse: firmaStrasseController.text);
     });
     firmaPlzController.addListener(() {
-      firma.value.plz = firmaPlzController.text;
+      firma.value = firma.value.copyWith(plz: firmaPlzController.text);
     });
     firmaOrtController.addListener(() {
-      firma.value.ort = firmaOrtController.text;
+      firma.value = firma.value.copyWith(ort: firmaOrtController.text);
     });
     firmaTelefonController.addListener(() {
-      firma.value.telefon = firmaTelefonController.text;
+      firma.value = firma.value.copyWith(telefon: firmaTelefonController.text);
     });
     firmaEmailController.addListener(() {
-      firma.value.email = firmaEmailController.text;
+      firma.value = firma.value.copyWith(email: firmaEmailController.text);
     });
     firmaWebsiteController.addListener(() {
-      firma.value.website = firmaWebsiteController.text;
+      firma.value = firma.value.copyWith(website: firmaWebsiteController.text);
     });
   }
 
@@ -398,12 +400,22 @@ class ScreenInputController extends GetxController {
 
   void addNewTextFields() {
     rechnungTextFielde.add(ReceiptData(
-      pos: rechnungTextFielde.length,
-      menge: 0,
-      einh: '',
+      pos: rechnungTextFielde.length + 1, // Position nummerieren
+      menge: 1.0, // sinnvoller Default
+      einh: 'Stk',
       bezeichnung: '',
       einzelPreis: 0.0,
+      // bilder: [], // falls du Bilder pro Position hast
     ));
+  }
+
+  void removePositionAt(int index) {
+    rechnungTextFielde.removeAt(index);
+    // Positionen neu nummerieren
+    for (int i = 0; i < rechnungTextFielde.length; i++) {
+      rechnungTextFielde[i] = rechnungTextFielde[i].copyWith(pos: i + 1);
+    }
+    rechnungTextFielde.refresh(); // UI updaten
   }
 
   // Aktualisiert alle TextController für Monteur

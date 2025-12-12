@@ -67,8 +67,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
             build: (pw.Context context) => [
               if (pageIndex == 0)
                 pw.Center(
-                  child:
-                      pw.Image(logoImage, width: 200, fit: pw.BoxFit.contain),
+                  child: pw.Image(logoImage,
+                      width: 150, height: 150, fit: pw.BoxFit.contain),
                 ),
               if (pageIndex == 0) pw.SizedBox(height: 30),
               // ──────── HIER DER NEUE BLOCK ────────
