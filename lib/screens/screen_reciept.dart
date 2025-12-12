@@ -102,64 +102,102 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                         width: 150, height: 150, fit: pw.BoxFit.contain)),
               if (pageIndex == 0 && logoImage != null) pw.SizedBox(height: 30),
               if (pageIndex == 0) ...[
+                // Firma und Baustelle - konsistentes Layout
                 pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                    children: [
-                      pw.Column(children: [
-                        pw.SizedBox(height: 20),
-                        pw.Center(
-                            child: pw.Text("Firma",
-                                style: pw.TextStyle(fontSize: 22))),
-                        pw.SizedBox(height: 10),
-                        pw.Center(
-                            child: pw.Text(
-                                _screenInputController.firmaNameController.text,
-                                style: pw.TextStyle(fontSize: 20))),
-                        pw.SizedBox(height: 8),
-                        pw.Center(
-                            child: pw.Text(
-                                _screenInputController
-                                    .firmaStrasseController.text,
-                                style: pw.TextStyle(fontSize: 15),
-                                textAlign: pw.TextAlign.center)),
-                        pw.Column(children: [
-                          pw.SizedBox(height: 12),
-                          pw.Center(
-                              child: pw.Column(children: [
-                            pw.Text(
-                                "E-Mail: ${_screenInputController.firmaEmailController.text}",
-                                style: pw.TextStyle(fontSize: 15)),
-                            pw.Text(
-                                "Tel: ${_screenInputController.firmaTelefonController.text}",
-                                style: pw.TextStyle(fontSize: 15)),
-                            pw.Text(
-                                _screenInputController
-                                    .firmaWebsiteController.text,
-                                style: pw.TextStyle(fontSize: 15)),
-                          ])),
-                        ])
-                      ]),
-                      pw.Column(children: [
-                        pw.SizedBox(height: 10),
-                        pw.Center(
-                            child: pw.Text("Baustelle Infos",
-                                style: pw.TextStyle(fontSize: 22))),
-                        pw.SizedBox(height: 10),
-                        pw.Center(
-                            child: pw.Column(children: [
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    // Firma
+                    pw.Expanded(
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
                           pw.Text(
-                              "${_screenInputController.baustelleStrasseController.text}",
-                              style: pw.TextStyle(fontSize: 15)),
+                            "Firma",
+                            style: pw.TextStyle(
+                              font: ocrFont,
+                              fontSize: 14,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
+                          pw.SizedBox(height: 8),
+                          if (_screenInputController.firmaNameController.text.isNotEmpty)
+                            pw.Text(
+                              _screenInputController.firmaNameController.text,
+                              style: pw.TextStyle(font: ocrFont, fontSize: 11),
+                            ),
+                          if (_screenInputController.firmaStrasseController.text.isNotEmpty) ...[
+                            pw.SizedBox(height: 4),
+                            pw.Text(
+                              _screenInputController.firmaStrasseController.text,
+                              style: pw.TextStyle(font: ocrFont, fontSize: 11),
+                            ),
+                          ],
+                          if (_screenInputController.firmaPlzController.text.isNotEmpty ||
+                              _screenInputController.firmaOrtController.text.isNotEmpty) ...[
+                            pw.SizedBox(height: 4),
+                            pw.Text(
+                              "${_screenInputController.firmaPlzController.text} ${_screenInputController.firmaOrtController.text}".trim(),
+                              style: pw.TextStyle(font: ocrFont, fontSize: 11),
+                            ),
+                          ],
+                          if (_screenInputController.firmaTelefonController.text.isNotEmpty) ...[
+                            pw.SizedBox(height: 4),
+                            pw.Text(
+                              "Tel: ${_screenInputController.firmaTelefonController.text}",
+                              style: pw.TextStyle(font: ocrFont, fontSize: 11),
+                            ),
+                          ],
+                          if (_screenInputController.firmaEmailController.text.isNotEmpty) ...[
+                            pw.SizedBox(height: 4),
+                            pw.Text(
+                              "E-Mail: ${_screenInputController.firmaEmailController.text}",
+                              style: pw.TextStyle(font: ocrFont, fontSize: 11),
+                            ),
+                          ],
+                          if (_screenInputController.firmaWebsiteController.text.isNotEmpty) ...[
+                            pw.SizedBox(height: 4),
+                            pw.Text(
+                              _screenInputController.firmaWebsiteController.text,
+                              style: pw.TextStyle(font: ocrFont, fontSize: 11),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    pw.SizedBox(width: 30),
+                    // Baustelle
+                    pw.Expanded(
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
                           pw.Text(
-                              "${_screenInputController.baustellePlzController.text}",
-                              style: pw.TextStyle(fontSize: 15)),
-                          pw.Text(
-                              _screenInputController
-                                  .baustelleOrtController.text,
-                              style: pw.TextStyle(fontSize: 15)),
-                        ])),
-                      ])
-                    ]),
+                            "Baustelle Infos",
+                            style: pw.TextStyle(
+                              font: ocrFont,
+                              fontSize: 14,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
+                          pw.SizedBox(height: 8),
+                          if (_screenInputController.baustelleStrasseController.text.isNotEmpty)
+                            pw.Text(
+                              _screenInputController.baustelleStrasseController.text,
+                              style: pw.TextStyle(font: ocrFont, fontSize: 11),
+                            ),
+                          if (_screenInputController.baustellePlzController.text.isNotEmpty ||
+                              _screenInputController.baustelleOrtController.text.isNotEmpty) ...[
+                            pw.SizedBox(height: 4),
+                            pw.Text(
+                              "${_screenInputController.baustellePlzController.text} ${_screenInputController.baustelleOrtController.text}".trim(),
+                              style: pw.TextStyle(font: ocrFont, fontSize: 11),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
                 pw.SizedBox(height: 33),
               ],
               if (pages.length > 1)
@@ -258,7 +296,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                   '${_formatNumber(widget.receiptData.fold(0.0, (sum, e) => sum + e.gesamtPreis))} €'
                 ], ocrFont, isHeader: true),
                 pw.SizedBox(height: 30),
-                // Kunde & Monteur Informationen
+                // Kunde & Monteur Informationen - konsistentes Layout
                 pw.Row(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
@@ -268,40 +306,48 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
                           pw.Text(
-                            "Kunde:",
+                            "Kunde",
                             style: pw.TextStyle(
                               font: ocrFont,
-                              fontSize: 12,
+                              fontSize: 14,
                               fontWeight: pw.FontWeight.bold,
                             ),
                           ),
-                          pw.SizedBox(height: 6),
+                          pw.SizedBox(height: 8),
                           if (_screenInputController.kunde.value.name.isNotEmpty)
                             pw.Text(
                               _screenInputController.kunde.value.name,
-                              style: pw.TextStyle(font: ocrFont, fontSize: 10),
+                              style: pw.TextStyle(font: ocrFont, fontSize: 11),
                             ),
-                          if (_screenInputController.kunde.value.strasse.isNotEmpty)
+                          if (_screenInputController.kunde.value.strasse.isNotEmpty) ...[
+                            pw.SizedBox(height: 4),
                             pw.Text(
                               _screenInputController.kunde.value.strasse,
-                              style: pw.TextStyle(font: ocrFont, fontSize: 10),
+                              style: pw.TextStyle(font: ocrFont, fontSize: 11),
                             ),
+                          ],
                           if (_screenInputController.kunde.value.plz.isNotEmpty ||
-                              _screenInputController.kunde.value.ort.isNotEmpty)
+                              _screenInputController.kunde.value.ort.isNotEmpty) ...[
+                            pw.SizedBox(height: 4),
                             pw.Text(
                               "${_screenInputController.kunde.value.plz} ${_screenInputController.kunde.value.ort}".trim(),
-                              style: pw.TextStyle(font: ocrFont, fontSize: 10),
+                              style: pw.TextStyle(font: ocrFont, fontSize: 11),
                             ),
-                          if (_screenInputController.kunde.value.telefon.isNotEmpty)
+                          ],
+                          if (_screenInputController.kunde.value.telefon.isNotEmpty) ...[
+                            pw.SizedBox(height: 4),
                             pw.Text(
                               "Tel: ${_screenInputController.kunde.value.telefon}",
-                              style: pw.TextStyle(font: ocrFont, fontSize: 10),
+                              style: pw.TextStyle(font: ocrFont, fontSize: 11),
                             ),
-                          if (_screenInputController.kunde.value.email.isNotEmpty)
+                          ],
+                          if (_screenInputController.kunde.value.email.isNotEmpty) ...[
+                            pw.SizedBox(height: 4),
                             pw.Text(
                               "E-Mail: ${_screenInputController.kunde.value.email}",
-                              style: pw.TextStyle(font: ocrFont, fontSize: 10),
+                              style: pw.TextStyle(font: ocrFont, fontSize: 11),
                             ),
+                          ],
                         ],
                       ),
                     ),
@@ -312,29 +358,33 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
                           pw.Text(
-                            "Monteur:",
+                            "Monteur",
                             style: pw.TextStyle(
                               font: ocrFont,
-                              fontSize: 12,
+                              fontSize: 14,
                               fontWeight: pw.FontWeight.bold,
                             ),
                           ),
-                          pw.SizedBox(height: 6),
+                          pw.SizedBox(height: 8),
                           if (_screenInputController.monteur.value.vollerName.isNotEmpty)
                             pw.Text(
                               _screenInputController.monteur.value.vollerName,
-                              style: pw.TextStyle(font: ocrFont, fontSize: 10),
+                              style: pw.TextStyle(font: ocrFont, fontSize: 11),
                             ),
-                          if (_screenInputController.monteur.value.telefon.isNotEmpty)
+                          if (_screenInputController.monteur.value.telefon.isNotEmpty) ...[
+                            pw.SizedBox(height: 4),
                             pw.Text(
                               "Tel: ${_screenInputController.monteur.value.telefon}",
-                              style: pw.TextStyle(font: ocrFont, fontSize: 10),
+                              style: pw.TextStyle(font: ocrFont, fontSize: 11),
                             ),
-                          if (_screenInputController.monteur.value.email.isNotEmpty)
+                          ],
+                          if (_screenInputController.monteur.value.email.isNotEmpty) ...[
+                            pw.SizedBox(height: 4),
                             pw.Text(
                               "E-Mail: ${_screenInputController.monteur.value.email}",
-                              style: pw.TextStyle(font: ocrFont, fontSize: 10),
+                              style: pw.TextStyle(font: ocrFont, fontSize: 11),
                             ),
+                          ],
                         ],
                       ),
                     ),
