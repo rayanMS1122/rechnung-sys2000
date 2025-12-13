@@ -26,10 +26,10 @@ class _ScreenInputState extends State<ScreenInput> {
   final ScreenInputController _controller = Get.find();
   final UnterschriftController _unterschriftController = Get.find();
   final ScrollController _scrollController = ScrollController();
-  
+
   // Deutsche Zahlenformatierung (Komma statt Punkt, immer 2 Dezimalstellen)
   final NumberFormat _numberFormat = NumberFormat('#,##0.00', 'de_DE');
-  
+
   // Hilfsfunktion für deutsche Zahlenformatierung
   String _formatNumber(double value) {
     // NumberFormat mit 'de_DE' verwendet bereits Komma als Dezimaltrennzeichen
@@ -49,39 +49,51 @@ class _ScreenInputState extends State<ScreenInput> {
         "Fehler",
         "Bitte fügen Sie mindestens eine Position hinzu",
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.redAccent,
+        backgroundColor: Colors.redAccent.withOpacity(0.9),
         colorText: Colors.white,
+        borderRadius: 15,
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 3),
+        isDismissible: true,
       );
       return;
     }
-    
+
     // Validierung: Prüfe alle Positionen
     for (int i = 0; i < _controller.rechnungTextFielde.length; i++) {
       final item = _controller.rechnungTextFielde[i];
-      
+
       if (item.menge == null || item.menge! <= 0) {
         Get.snackbar(
           "Fehler",
           "Position ${i + 1}: Menge muss größer als 0 sein",
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.redAccent,
+          backgroundColor: Colors.redAccent.withOpacity(0.9),
           colorText: Colors.white,
+          borderRadius: 15,
+          margin: const EdgeInsets.all(16),
+          duration: const Duration(seconds: 3),
+          isDismissible: true,
         );
         return;
       }
-      
+
       if (item.einzelPreis == null || item.einzelPreis! < 0) {
         Get.snackbar(
           "Fehler",
           "Position ${i + 1}: Einzelpreis ist erforderlich",
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.redAccent,
+          backgroundColor: Colors.redAccent.withOpacity(0.9),
           colorText: Colors.white,
+          borderRadius: 15,
+          margin: const EdgeInsets.all(16),
+          duration: const Duration(seconds: 3),
+          isDismissible: true,
         );
         return;
       }
     }
-    
+
     if (_formKey.currentState!.validate()) {
       Navigator.push(
         context,
@@ -216,18 +228,47 @@ class _ScreenInputState extends State<ScreenInput> {
                       width: double.infinity,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey.shade700,
+                          backgroundColor: AppColors.danger,
                           padding: EdgeInsets.symmetric(vertical: 16.h),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(30.r)),
                         ),
                         onPressed: () {
-                          _unterschriftController.kundePngBytes.value = null;
-                          _unterschriftController.monteurPngBytes.value = null;
-                          _controller.rechnungTextFielde.clear();
+                          showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                    title: Text('Neue Rechnung'),
+                                    content: Text(
+                                        'Sind Sie sicher, dass Sie eine neue Rechnung erstellen möchten?'),
+                                    actions: [
+                                      TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context),
+                                          child: Text('Abbrechen')),
+                                      TextButton(
+                                          onPressed: () {
+                                            _unterschriftController
+                                                .kundePngBytes.value = null;
+                                            _unterschriftController
+                                                .monteurPngBytes.value = null;
+                                            _controller.rechnungTextFielde
+                                                .clear();
+                                            Navigator.pop(context);
+                                          },
+                                          child: Text('Ja')),
+                                    ],
+                                  ));
                         },
-                        child: Text('Neue Rechnung',
-                            style: AppText.button.copyWith(fontSize: 16.sp)),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.clear, size: 24.sp),
+                            Text('Neue Rechnung',
+                                style:
+                                    AppText.button.copyWith(fontSize: 16.sp)),
+                          ],
+                        ),
                       ),
                     ),
                     SizedBox(height: 12.h),
@@ -298,25 +339,6 @@ class _ScreenInputState extends State<ScreenInput> {
             // Rechte Seite: Clear-Button (nur wenn bearbeitbar) + Settings
             Row(
               children: [
-                Obx(() => editingEnabled
-                    ? GestureDetector(
-                        onTap: () => _controller.rechnungTextFielde.clear(),
-                        child: Container(
-                          padding: EdgeInsets.all(8.w),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                          child: Icon(
-                            Icons.clear,
-                            color: AppColors.primary,
-                            size: 24.sp,
-                          ),
-                        ),
-                      )
-                    : SizedBox(
-                        width:
-                            40.w)), // Platzhalter, damit Titel zentriert bleibt
                 SizedBox(width: 8.w),
                 GestureDetector(
                   onTap: () => Navigator.push(
@@ -421,8 +443,8 @@ class _ScreenInputState extends State<ScreenInput> {
                 Expanded(
                   flex: 2,
                   child: TextFormField(
-                    initialValue: item.menge != null 
-                        ? _formatNumber(item.menge!) 
+                    initialValue: item.menge != null
+                        ? _formatNumber(item.menge!)
                         : "1,00",
                     keyboardType:
                         TextInputType.numberWithOptions(decimal: true),
@@ -432,7 +454,8 @@ class _ScreenInputState extends State<ScreenInput> {
                       if (value == null || value.trim().isEmpty) {
                         return "Erforderlich";
                       }
-                      final parsed = double.tryParse(value.replaceAll(',', '.'));
+                      final parsed =
+                          double.tryParse(value.replaceAll(',', '.'));
                       if (parsed == null || parsed <= 0) {
                         return "> 0";
                       }
@@ -475,7 +498,8 @@ class _ScreenInputState extends State<ScreenInput> {
                       if (value == null || value.trim().isEmpty) {
                         return "Erforderlich";
                       }
-                      final parsed = double.tryParse(value.replaceAll(',', '.'));
+                      final parsed =
+                          double.tryParse(value.replaceAll(',', '.'));
                       if (parsed == null || parsed < 0) {
                         return "≥ 0";
                       }
@@ -548,7 +572,8 @@ class _ScreenInputState extends State<ScreenInput> {
                                   width: 100.w,
                                   height: 100.h,
                                   color: Colors.grey.shade300,
-                                  child: Icon(Icons.broken_image, color: Colors.grey),
+                                  child: Icon(Icons.broken_image,
+                                      color: Colors.grey),
                                 );
                               },
                             ),
@@ -558,7 +583,8 @@ class _ScreenInputState extends State<ScreenInput> {
                             right: 4.w,
                             child: GestureDetector(
                               onTap: () {
-                                controller.removeImageFromPosition(index, imgIndex);
+                                controller.removeImageFromPosition(
+                                    index, imgIndex);
                               },
                               child: Container(
                                 padding: EdgeInsets.all(4.w),
@@ -590,14 +616,24 @@ class _ScreenInputState extends State<ScreenInput> {
                 children: [
                   _actionButton(
                       icon: Icons.image_outlined,
-                      label: item.img != null && item.img!.isNotEmpty 
-                          ? "Bilder anzeigen (${item.img!.length})" 
+                      label: item.img != null && item.img!.isNotEmpty
+                          ? "Bilder anzeigen (${item.img!.length})"
                           : "Bilder anzeigen",
                       onTap: () {
                         if (item.img != null && item.img!.isNotEmpty) {
                           _showImageGallery(context, index);
                         } else {
-                          Get.snackbar("Info", "Keine Bilder vorhanden");
+                          Get.snackbar(
+                            "Info",
+                            "Keine Bilder vorhanden",
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: AppColors.primary.withOpacity(0.9),
+                            colorText: Colors.white,
+                            borderRadius: 15,
+                            margin: const EdgeInsets.all(16),
+                            duration: const Duration(seconds: 2),
+                            isDismissible: true,
+                          );
                         }
                       }),
                   SizedBox(height: 10.h),
@@ -677,7 +713,8 @@ class _ScreenInputState extends State<ScreenInput> {
               title: Text("Aus Galerie auswählen"),
               onTap: () {
                 Navigator.pop(context);
-                _controller.addImagesToPosition(index, source: ImageSource.gallery);
+                _controller.addImagesToPosition(index,
+                    source: ImageSource.gallery);
               },
             ),
             ListTile(
@@ -698,7 +735,7 @@ class _ScreenInputState extends State<ScreenInput> {
   // Bildergalerie-Dialog zum Anzeigen aller Bilder
   void _showImageGallery(BuildContext context, int index) {
     final images = _controller.getImagesForPosition(index);
-    
+
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -776,9 +813,12 @@ class _ScreenInputState extends State<ScreenInput> {
                             right: 8.w,
                             child: GestureDetector(
                               onTap: () {
-                                _controller.removeImageFromPosition(index, imgIndex);
+                                _controller.removeImageFromPosition(
+                                    index, imgIndex);
                                 Navigator.pop(context);
-                                if (_controller.getImagesForPosition(index).isNotEmpty) {
+                                if (_controller
+                                    .getImagesForPosition(index)
+                                    .isNotEmpty) {
                                   _showImageGallery(context, index);
                                 }
                               },

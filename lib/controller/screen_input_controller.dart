@@ -11,6 +11,7 @@ import 'package:reciepts/models/monteur.dart';
 import 'package:reciepts/models/firma_model.dart';
 import 'package:reciepts/models/reciept_model.dart';
 import 'package:reciepts/database/database_helper.dart';
+import 'package:reciepts/constants.dart';
 
 class ScreenInputController extends GetxController {
   // ==================== DATABASE ====================
@@ -115,13 +116,33 @@ class ScreenInputController extends GetxController {
   bool _isUpdatingControllers = false; // Flag um Listener zu deaktivieren
   Timer? _kundeCheckTimer;
   Timer? _monteurCheckTimer;
+
+  // Einheitliche SnackBar-Funktion mit Glassmorphism-Effekt
+  void _showSnackBar(String title, String message, {bool isError = false}) {
+    Get.snackbar(
+      title,
+      message,
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: isError
+          ? Colors.redAccent.withOpacity(0.9)
+          : AppColors.primary.withOpacity(0.9),
+      colorText: Colors.white,
+      borderRadius: 15,
+      margin: const EdgeInsets.all(16),
+      duration: const Duration(seconds: 3),
+      isDismissible: true,
+      dismissDirection: DismissDirection.horizontal,
+      forwardAnimationCurve: Curves.easeOutBack,
+    );
+  }
+
   @override
   void onInit() async {
     super.onInit(); // Wichtig: super.onInit() zuerst aufrufen
-    
+
     // Controller zuerst initialisieren
     _initControllers();
-    
+
     await _loadAllDataFromDatabase();
     await _loadEinstellungenFromDB(); // Lädt Daten und aktualisiert Controller
 
@@ -230,7 +251,8 @@ class ScreenInputController extends GetxController {
             );
             // Controller direkt aktualisieren
             updateMonteurControllers();
-            debugPrint('Zuletzt ausgewählter Monteur (ID: $lastMonteurId) wurde geladen');
+            debugPrint(
+                'Zuletzt ausgewählter Monteur (ID: $lastMonteurId) wurde geladen');
           }
         } catch (e) {
           debugPrint('Fehler beim Laden des zuletzt ausgewählten Monteurs: $e');
@@ -254,7 +276,8 @@ class ScreenInputController extends GetxController {
             );
             // Controller direkt aktualisieren
             updateKundeControllers();
-            debugPrint('Zuletzt ausgewählter Kunde (ID: $lastKundeId) wurde geladen');
+            debugPrint(
+                'Zuletzt ausgewählter Kunde (ID: $lastKundeId) wurde geladen');
           }
         } catch (e) {
           debugPrint('Fehler beim Laden des zuletzt ausgewählten Kunden: $e');
@@ -267,10 +290,14 @@ class ScreenInputController extends GetxController {
 
     // Controller mit aktuellen Werten füllen (NACH dem Laden der Daten)
     _initControllers();
-    
+
     // Nach dem Initialisieren der Controller die geladenen Werte in die Controller schreiben
     updateMonteurControllers();
     updateKundeControllers();
+    
+    // Initiale Prüfung ob gespeichert werden kann
+    _checkCanSaveKunde();
+    _checkCanSaveMonteur();
   }
 
   @override
@@ -278,7 +305,7 @@ class ScreenInputController extends GetxController {
     // Timer beenden
     _kundeCheckTimer?.cancel();
     _monteurCheckTimer?.cancel();
-    
+
     // Alle TextEditingController explizit dispose
     firmaNameController.dispose();
     firmaStrasseController.dispose();
@@ -287,23 +314,23 @@ class ScreenInputController extends GetxController {
     firmaTelefonController.dispose();
     firmaWebsiteController.dispose();
     firmaEmailController.dispose();
-    
+
     kundeNameController.dispose();
     kundeStrasseController.dispose();
     kundePlzController.dispose();
     kundeOrtController.dispose();
     kundeTeleController.dispose();
     kundeEmailController.dispose();
-    
+
     monteurVornameController.dispose();
     monteurNachnameController.dispose();
     monteurTeleController.dispose();
     monteurEmailController.dispose();
-    
+
     baustelleStrasseController.dispose();
     baustellePlzController.dispose();
     baustelleOrtController.dispose();
-    
+
     super.onClose();
   }
 
@@ -322,33 +349,42 @@ class ScreenInputController extends GetxController {
 
   void _initControllers() {
     firmaNameController = TextEditingController(text: firma.value.name ?? '');
-    firmaStrasseController = TextEditingController(text: firma.value.strasse ?? '');
+    firmaStrasseController =
+        TextEditingController(text: firma.value.strasse ?? '');
     firmaPlzController = TextEditingController(text: firma.value.plz ?? '');
     firmaOrtController = TextEditingController(text: firma.value.ort ?? '');
-    firmaTelefonController = TextEditingController(text: firma.value.telefon ?? '');
+    firmaTelefonController =
+        TextEditingController(text: firma.value.telefon ?? '');
     firmaEmailController = TextEditingController(text: firma.value.email ?? '');
-    firmaWebsiteController = TextEditingController(text: firma.value.website ?? '');
+    firmaWebsiteController =
+        TextEditingController(text: firma.value.website ?? '');
 
     kundeNameController = TextEditingController(text: kunde.value?.name ?? '');
-    kundeStrasseController = TextEditingController(text: kunde.value?.strasse ?? '');
+    kundeStrasseController =
+        TextEditingController(text: kunde.value?.strasse ?? '');
     kundePlzController = TextEditingController(text: kunde.value?.plz ?? '');
     kundeOrtController = TextEditingController(text: kunde.value?.ort ?? '');
-    kundeTeleController = TextEditingController(text: kunde.value?.telefon ?? '');
-    kundeEmailController = TextEditingController(text: kunde.value?.email ?? '');
+    kundeTeleController =
+        TextEditingController(text: kunde.value?.telefon ?? '');
+    kundeEmailController =
+        TextEditingController(text: kunde.value?.email ?? '');
 
     monteurVornameController =
         TextEditingController(text: monteur.value?.vorname ?? '');
     monteurNachnameController =
         TextEditingController(text: monteur.value?.nachname ?? '');
-    monteurTeleController = TextEditingController(text: monteur.value?.telefon ?? '');
+    monteurTeleController =
+        TextEditingController(text: monteur.value?.telefon ?? '');
     monteurEmailController =
         TextEditingController(text: monteur.value.email ?? "");
     updateMonteurControllers();
     updateKundeControllers();
     baustelleStrasseController =
         TextEditingController(text: baustelle.value.strasse ?? '');
-    baustellePlzController = TextEditingController(text: baustelle.value.plz ?? '');
-    baustelleOrtController = TextEditingController(text: baustelle.value.ort ?? '');
+    baustellePlzController =
+        TextEditingController(text: baustelle.value.plz ?? '');
+    baustelleOrtController =
+        TextEditingController(text: baustelle.value.ort ?? '');
   }
 
   // ==================== DATABASE FUNKTIONEN ====================
@@ -366,14 +402,11 @@ class ScreenInputController extends GetxController {
         'website': firma.value.website,
       });
       await _loadAllDataFromDatabase();
-      Get.snackbar("Erfolg", "Firma wurde gespeichert!");
+      _showSnackBar("Erfolg", "Firma wurde gespeichert!");
     } catch (e) {
-      Get.snackbar(
-        "Fehler",
-        "Firma konnte nicht gespeichert werden: ${e.toString()}",
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 4),
-      );
+      _showSnackBar(
+          "Fehler", "Firma konnte nicht gespeichert werden: ${e.toString()}",
+          isError: true);
     }
   }
 
@@ -390,50 +423,67 @@ class ScreenInputController extends GetxController {
         email: firmaData['email'],
         website: firmaData['website'],
       );
-      _initControllers();
-      Get.snackbar("Erfolg", "Firma wurde geladen!");
+      
+      // Controller aktualisieren statt neu zu erstellen
+      _isUpdatingControllers = true;
+      firmaNameController.text = firma.value.name ?? '';
+      firmaStrasseController.text = firma.value.strasse ?? '';
+      firmaPlzController.text = firma.value.plz ?? '';
+      firmaOrtController.text = firma.value.ort ?? '';
+      firmaTelefonController.text = firma.value.telefon ?? '';
+      firmaEmailController.text = firma.value.email ?? '';
+      firmaWebsiteController.text = firma.value.website ?? '';
+      _isUpdatingControllers = false;
+      
+      _showSnackBar("Erfolg", "Firma wurde geladen!");
     }
   }
 
   // Prüft ob Kunde gespeichert werden kann (ohne Daten zu laden)
   Future<void> _checkCanSaveKunde() async {
-    final kundeData = {
-      'name': kundeNameController.text.trim(),
-      'strasse': kundeStrasseController.text.trim(),
-      'plz': kundePlzController.text.trim(),
-      'ort': kundeOrtController.text.trim(),
-      'telefon': kundeTeleController.text.trim(),
-      'email': kundeEmailController.text.trim(),
-    };
-    
-    // Prüfe nur ob Name, PLZ und Ort vorhanden sind (minimale Validierung)
-    if (kundeData['name']!.isEmpty || 
-        kundeData['plz']!.isEmpty || 
-        kundeData['ort']!.isEmpty) {
+    final name = kundeNameController.text.trim();
+    final strasse = kundeStrasseController.text.trim();
+    final plz = kundePlzController.text.trim();
+    final ort = kundeOrtController.text.trim();
+
+    // Prüfe ob alle erforderlichen Felder vorhanden sind
+    if (name.isEmpty || strasse.isEmpty || plz.isEmpty || ort.isEmpty) {
       canSaveKunde.value = false;
       return;
     }
-    
+
+    // Prüfe ob Duplikat existiert
+    final kundeData = {
+      'name': name,
+      'strasse': strasse,
+      'plz': plz,
+      'ort': ort,
+      'telefon': kundeTeleController.text.trim(),
+      'email': kundeEmailController.text.trim(),
+    };
+
     final exists = await _dbHelper.kundeExists(kundeData);
     canSaveKunde.value = !exists;
   }
-  
+
   // Lädt existierenden Kunden und füllt die Felder
   Future<void> _loadExistingKunde(Map<String, dynamic> kundeData) async {
     final allKunden = await _dbHelper.queryAllKunden();
     final name = (kundeData['name'] ?? '').toString().trim().toLowerCase();
     final plz = (kundeData['plz'] ?? '').toString().trim().toLowerCase();
     final ort = (kundeData['ort'] ?? '').toString().trim().toLowerCase();
-    final telefon = (kundeData['telefon'] ?? '').toString().trim().toLowerCase();
+    final telefon =
+        (kundeData['telefon'] ?? '').toString().trim().toLowerCase();
     final email = (kundeData['email'] ?? '').toString().trim().toLowerCase();
-    
+
     for (var dbKunde in allKunden) {
       final dbName = (dbKunde['name']?.toString() ?? '').trim().toLowerCase();
       final dbPlz = (dbKunde['plz']?.toString() ?? '').trim().toLowerCase();
       final dbOrt = (dbKunde['ort']?.toString() ?? '').trim().toLowerCase();
-      final dbTelefon = (dbKunde['telefon']?.toString() ?? '').trim().toLowerCase();
+      final dbTelefon =
+          (dbKunde['telefon']?.toString() ?? '').trim().toLowerCase();
       final dbEmail = (dbKunde['email']?.toString() ?? '').trim().toLowerCase();
-      
+
       bool matches = false;
       if (name.isNotEmpty && plz.isNotEmpty && ort.isNotEmpty) {
         matches = dbName == name && dbPlz == plz && dbOrt == ort;
@@ -442,10 +492,11 @@ class ScreenInputController extends GetxController {
       } else if (name.isNotEmpty && email.isNotEmpty) {
         matches = dbName == name && dbEmail == email;
       }
-      
+
       if (matches) {
         // Lade den gefundenen Kunden
-        await selectKundeFromDatabase(dbKunde['id'] as int, showSnackbar: false);
+        await selectKundeFromDatabase(dbKunde['id'] as int,
+            showSnackbar: false);
         break;
       }
     }
@@ -462,14 +513,14 @@ class ScreenInputController extends GetxController {
         'telefon': kunde.value?.telefon ?? '',
         'email': kunde.value?.email ?? '',
       };
-      
+
       // Prüfe ob identischer Kunde bereits existiert
       final exists = await _dbHelper.kundeExists(kundeData);
       if (exists) {
         await _loadExistingKunde(kundeData);
         return false;
       }
-      
+
       await _dbHelper.insertKunde(kundeData);
       await _loadAllDataFromDatabase();
       return true;
@@ -480,49 +531,61 @@ class ScreenInputController extends GetxController {
 
   // Prüft ob Monteur gespeichert werden kann (ohne Daten zu laden)
   Future<void> _checkCanSaveMonteur() async {
-    final monteurData = {
-      'vorname': monteurVornameController.text.trim(),
-      'nachname': monteurNachnameController.text.trim(),
-      'telefon': monteurTeleController.text.trim(),
-      'email': monteurEmailController.text.trim(),
-    };
-    
-    // Prüfe nur ob Vorname, Nachname und Telefon vorhanden sind (minimale Validierung)
-    if (monteurData['vorname']!.isEmpty || 
-        monteurData['nachname']!.isEmpty || 
-        monteurData['telefon']!.isEmpty) {
+    final vorname = monteurVornameController.text.trim();
+    final nachname = monteurNachnameController.text.trim();
+    final telefon = monteurTeleController.text.trim();
+
+    // Prüfe ob alle erforderlichen Felder vorhanden sind
+    if (vorname.isEmpty || nachname.isEmpty || telefon.isEmpty) {
       canSaveMonteur.value = false;
       return;
     }
-    
+
+    // Prüfe ob Duplikat existiert
+    final monteurData = {
+      'vorname': vorname,
+      'nachname': nachname,
+      'telefon': telefon,
+      'email': monteurEmailController.text.trim(),
+    };
+
     final exists = await _dbHelper.monteurExists(monteurData);
     canSaveMonteur.value = !exists;
   }
-  
+
   // Lädt existierenden Monteur und füllt die Felder
   Future<void> _loadExistingMonteur(Map<String, dynamic> monteurData) async {
     final allMonteure = await _dbHelper.queryAllMonteure();
-    final vorname = (monteurData['vorname'] ?? '').toString().trim().toLowerCase();
-    final nachname = (monteurData['nachname'] ?? '').toString().trim().toLowerCase();
-    final telefon = (monteurData['telefon'] ?? '').toString().trim().toLowerCase();
-    
+    final vorname =
+        (monteurData['vorname'] ?? '').toString().trim().toLowerCase();
+    final nachname =
+        (monteurData['nachname'] ?? '').toString().trim().toLowerCase();
+    final telefon =
+        (monteurData['telefon'] ?? '').toString().trim().toLowerCase();
+
     for (var dbMonteur in allMonteure) {
-      final dbVorname = (dbMonteur['vorname']?.toString() ?? '').trim().toLowerCase();
-      final dbNachname = (dbMonteur['nachname']?.toString() ?? '').trim().toLowerCase();
-      final dbTelefon = (dbMonteur['telefon']?.toString() ?? '').trim().toLowerCase();
-      
+      final dbVorname =
+          (dbMonteur['vorname']?.toString() ?? '').trim().toLowerCase();
+      final dbNachname =
+          (dbMonteur['nachname']?.toString() ?? '').trim().toLowerCase();
+      final dbTelefon =
+          (dbMonteur['telefon']?.toString() ?? '').trim().toLowerCase();
+
       bool matches = false;
       if (vorname.isNotEmpty && nachname.isNotEmpty) {
         if (telefon.isNotEmpty) {
-          matches = dbVorname == vorname && dbNachname == nachname && dbTelefon == telefon;
+          matches = dbVorname == vorname &&
+              dbNachname == nachname &&
+              dbTelefon == telefon;
         } else {
           matches = dbVorname == vorname && dbNachname == nachname;
         }
       }
-      
+
       if (matches) {
         // Lade den gefundenen Monteur
-        await selectMonteurFromDatabase(dbMonteur['id'] as int, showSnackbar: false);
+        await selectMonteurFromDatabase(dbMonteur['id'] as int,
+            showSnackbar: false);
         break;
       }
     }
@@ -537,14 +600,14 @@ class ScreenInputController extends GetxController {
         'telefon': monteur.value?.telefon ?? '',
         'email': monteur.value?.email ?? '',
       };
-      
+
       // Prüfe ob identischer Monteur bereits existiert
       final exists = await _dbHelper.monteurExists(monteurData);
       if (exists) {
         await _loadExistingMonteur(monteurData);
         return false;
       }
-      
+
       await _dbHelper.insertMonteur(monteurData);
       await _loadAllDataFromDatabase();
       return true;
@@ -553,7 +616,8 @@ class ScreenInputController extends GetxController {
     }
   }
 
-  Future<void> selectMonteurFromDatabase(int id, {bool showSnackbar = true}) async {
+  Future<void> selectMonteurFromDatabase(int id,
+      {bool showSnackbar = true}) async {
     final monteurData = await _dbHelper.queryMonteurById(id);
     if (monteurData != null) {
       monteur.value = Monteur(
@@ -564,19 +628,20 @@ class ScreenInputController extends GetxController {
         email: monteurData['email']?.toString() ?? '',
       );
 
-      // Das ist der entscheidende Aufruf!
+      // Controller aktualisieren - WICHTIG: Dies muss nach dem Setzen von monteur.value passieren
       updateMonteurControllers();
 
       // ID in Einstellungen speichern
       await _saveEinstellungen();
 
       if (showSnackbar) {
-        Get.snackbar("Erfolg", "Monteur wurde geladen!");
+        _showSnackBar("Erfolg", "Monteur wurde geladen!");
       }
     }
   }
 
-  Future<void> selectKundeFromDatabase(int id, {bool showSnackbar = true}) async {
+  Future<void> selectKundeFromDatabase(int id,
+      {bool showSnackbar = true}) async {
     final kundeData = await _dbHelper.queryKundeById(id);
     if (kundeData != null) {
       kunde.value = Kunde(
@@ -589,14 +654,14 @@ class ScreenInputController extends GetxController {
         email: kundeData['email']?.toString() ?? '',
       );
 
-      // Das ist der entscheidende Aufruf!
+      // Controller aktualisieren - WICHTIG: Dies muss nach dem Setzen von kunde.value passieren
       updateKundeControllers();
 
       // ID in Einstellungen speichern
       await _saveEinstellungen();
 
       if (showSnackbar) {
-        Get.snackbar("Erfolg", "Kunde wurde geladen!");
+        _showSnackBar("Erfolg", "Kunde wurde geladen!");
       }
     }
   }
@@ -610,14 +675,11 @@ class ScreenInputController extends GetxController {
         'ort': baustelle.value.ort ?? '',
       });
       await _loadAllDataFromDatabase();
-      Get.snackbar("Erfolg", "Baustelle wurde gespeichert!");
+      _showSnackBar("Erfolg", "Baustelle wurde gespeichert!");
     } catch (e) {
-      Get.snackbar(
-        "Fehler",
-        "Baustelle konnte nicht gespeichert werden: ${e.toString()}",
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 4),
-      );
+      _showSnackBar("Fehler",
+          "Baustelle konnte nicht gespeichert werden: ${e.toString()}",
+          isError: true);
     }
   }
 
@@ -632,7 +694,7 @@ class ScreenInputController extends GetxController {
         kundeId: kunde.value.id ?? 0,
       );
       _initControllers();
-      Get.snackbar("Erfolg", "Baustelle wurde geladen!");
+      _showSnackBar("Erfolg", "Baustelle wurde geladen!");
     }
   }
 
@@ -645,7 +707,7 @@ class ScreenInputController extends GetxController {
         _checkCanSaveMonteur();
       });
     }
-    
+
     monteurVornameController.addListener(() {
       if (!_isUpdatingControllers) {
         monteur.value =
@@ -682,7 +744,7 @@ class ScreenInputController extends GetxController {
         _checkCanSaveKunde();
       });
     }
-    
+
     kundeNameController.addListener(() {
       if (!_isUpdatingControllers) {
         kunde.value = kunde.value.copyWith(name: kundeNameController.text);
@@ -691,7 +753,8 @@ class ScreenInputController extends GetxController {
     });
     kundeStrasseController.addListener(() {
       if (!_isUpdatingControllers) {
-        kunde.value = kunde.value.copyWith(strasse: kundeStrasseController.text);
+        kunde.value =
+            kunde.value.copyWith(strasse: kundeStrasseController.text);
         _scheduleKundeCheck();
       }
     });
@@ -773,11 +836,12 @@ class ScreenInputController extends GetxController {
         // Sofort in DB speichern
         await _saveEinstellungen();
 
-        Get.snackbar("Erfolg", "Logo wurde gespeichert!");
+        _showSnackBar("Erfolg", "Logo wurde gespeichert!");
       }
     } catch (e) {
       debugPrint("Fehler beim Speichern des Logos: $e");
-      Get.snackbar("Fehler", "Logo konnte nicht gespeichert werden: $e");
+      _showSnackBar("Fehler", "Logo konnte nicht gespeichert werden: $e",
+          isError: true);
     }
   }
 
@@ -798,36 +862,40 @@ class ScreenInputController extends GetxController {
   }
 
   // ==================== BILDER FUNKTIONEN ====================
-  
+
   // Bilder zu einer Position hinzufügen
-  Future<void> addImagesToPosition(int index, {ImageSource source = ImageSource.gallery}) async {
+  Future<void> addImagesToPosition(int index,
+      {ImageSource source = ImageSource.gallery}) async {
     try {
       final List<XFile>? pickedFiles = await _picker.pickMultiImage();
-      
+
       if (pickedFiles != null && pickedFiles.isNotEmpty) {
         final List<String> imagePaths = [];
-        
+
         // Bilder in App-Dokumentenverzeichnis kopieren
         final directory = await getApplicationDocumentsDirectory();
-        
+
         for (var pickedFile in pickedFiles) {
-          final String newPath = "${directory.path}/receipt_image_${DateTime.now().millisecondsSinceEpoch}_${pickedFiles.indexOf(pickedFile)}.jpg";
+          final String newPath =
+              "${directory.path}/receipt_image_${DateTime.now().millisecondsSinceEpoch}_${pickedFiles.indexOf(pickedFile)}.jpg";
           final File newFile = await File(pickedFile.path).copy(newPath);
           imagePaths.add(newFile.path);
         }
-        
+
         // Bestehende Bilder behalten und neue hinzufügen
         final currentImages = rechnungTextFielde[index].img ?? [];
         final updatedImages = [...currentImages, ...imagePaths];
-        
-        rechnungTextFielde[index] = rechnungTextFielde[index].copyWith(img: updatedImages);
+
+        rechnungTextFielde[index] =
+            rechnungTextFielde[index].copyWith(img: updatedImages);
         rechnungTextFielde.refresh();
-        
-        Get.snackbar("Erfolg", "${pickedFiles.length} Bild(er) hinzugefügt!");
+
+        _showSnackBar("Erfolg", "${pickedFiles.length} Bild(er) hinzugefügt!");
       }
     } catch (e) {
       debugPrint("Fehler beim Hinzufügen der Bilder: $e");
-      Get.snackbar("Fehler", "Bilder konnten nicht hinzugefügt werden: $e");
+      _showSnackBar("Fehler", "Bilder konnten nicht hinzugefügt werden: $e",
+          isError: true);
     }
   }
 
@@ -840,23 +908,26 @@ class ScreenInputController extends GetxController {
         maxHeight: 2000,
         imageQuality: 90,
       );
-      
+
       if (pickedFile != null) {
         final directory = await getApplicationDocumentsDirectory();
-        final String newPath = "${directory.path}/receipt_image_${DateTime.now().millisecondsSinceEpoch}.jpg";
+        final String newPath =
+            "${directory.path}/receipt_image_${DateTime.now().millisecondsSinceEpoch}.jpg";
         final File newFile = await File(pickedFile.path).copy(newPath);
-        
+
         final currentImages = rechnungTextFielde[index].img ?? [];
         final updatedImages = [...currentImages, newFile.path];
-        
-        rechnungTextFielde[index] = rechnungTextFielde[index].copyWith(img: updatedImages);
+
+        rechnungTextFielde[index] =
+            rechnungTextFielde[index].copyWith(img: updatedImages);
         rechnungTextFielde.refresh();
-        
-        Get.snackbar("Erfolg", "Bild hinzugefügt!");
+
+        _showSnackBar("Erfolg", "Bild hinzugefügt!");
       }
     } catch (e) {
       debugPrint("Fehler beim Hinzufügen des Bildes: $e");
-      Get.snackbar("Fehler", "Bild konnte nicht hinzugefügt werden: $e");
+      _showSnackBar("Fehler", "Bild konnte nicht hinzugefügt werden: $e",
+          isError: true);
     }
   }
 
@@ -871,17 +942,20 @@ class ScreenInputController extends GetxController {
         if (file.existsSync()) {
           file.deleteSync();
         }
-        
+
         // Aus Liste entfernen
-        final updatedImages = List<String>.from(currentImages)..removeAt(imageIndex);
-        rechnungTextFielde[positionIndex] = rechnungTextFielde[positionIndex].copyWith(img: updatedImages);
+        final updatedImages = List<String>.from(currentImages)
+          ..removeAt(imageIndex);
+        rechnungTextFielde[positionIndex] =
+            rechnungTextFielde[positionIndex].copyWith(img: updatedImages);
         rechnungTextFielde.refresh();
-        
-        Get.snackbar("Erfolg", "Bild entfernt!");
+
+        _showSnackBar("Erfolg", "Bild entfernt!");
       }
     } catch (e) {
       debugPrint("Fehler beim Entfernen des Bildes: $e");
-      Get.snackbar("Fehler", "Bild konnte nicht entfernt werden: $e");
+      _showSnackBar("Fehler", "Bild konnte nicht entfernt werden: $e",
+          isError: true);
     }
   }
 
@@ -889,7 +963,7 @@ class ScreenInputController extends GetxController {
   void removeAllImagesFromPosition(int index) {
     try {
       final currentImages = rechnungTextFielde[index].img ?? [];
-      
+
       // Alle Dateien löschen
       for (var imagePath in currentImages) {
         final file = File(imagePath);
@@ -897,14 +971,15 @@ class ScreenInputController extends GetxController {
           file.deleteSync();
         }
       }
-      
+
       rechnungTextFielde[index] = rechnungTextFielde[index].copyWith(img: []);
       rechnungTextFielde.refresh();
-      
-      Get.snackbar("Erfolg", "Alle Bilder entfernt!");
+
+      _showSnackBar("Erfolg", "Alle Bilder entfernt!");
     } catch (e) {
       debugPrint("Fehler beim Entfernen der Bilder: $e");
-      Get.snackbar("Fehler", "Bilder konnten nicht entfernt werden: $e");
+      _showSnackBar("Fehler", "Bilder konnten nicht entfernt werden: $e",
+          isError: true);
     }
   }
 
@@ -928,27 +1003,33 @@ class ScreenInputController extends GetxController {
   // Aktualisiert alle TextController für Monteur
   void updateMonteurControllers() {
     _isUpdatingControllers = true; // Listener deaktivieren
-    
+
     // TextController aktualisieren
-    monteurVornameController.text = monteur.value.vorname ?? '';
-    monteurNachnameController.text = monteur.value.nachname ?? '';
-    monteurTeleController.text = monteur.value.telefon ?? '';
-    monteurEmailController.text = monteur.value.email ?? '';
-    
+    monteurVornameController.text = monteur.value?.vorname ?? '';
+    monteurNachnameController.text = monteur.value?.nachname ?? '';
+    monteurTeleController.text = monteur.value?.telefon ?? '';
+    monteurEmailController.text = monteur.value?.email ?? '';
+
     _isUpdatingControllers = false; // Listener wieder aktivieren
+    
+    // Prüfung nach dem Aktualisieren ausführen
+    _checkCanSaveMonteur();
   }
 
   // Aktualisiert alle TextController für Kunde
   void updateKundeControllers() {
     _isUpdatingControllers = true; // Listener deaktivieren
-    
-    kundeNameController.text = kunde.value.name ?? '';
-    kundeStrasseController.text = kunde.value.strasse ?? '';
-    kundePlzController.text = kunde.value.plz ?? '';
-    kundeOrtController.text = kunde.value.ort ?? '';
-    kundeTeleController.text = kunde.value.telefon ?? '';
-    kundeEmailController.text = kunde.value.email ?? '';
-    
+
+    kundeNameController.text = kunde.value?.name ?? '';
+    kundeStrasseController.text = kunde.value?.strasse ?? '';
+    kundePlzController.text = kunde.value?.plz ?? '';
+    kundeOrtController.text = kunde.value?.ort ?? '';
+    kundeTeleController.text = kunde.value?.telefon ?? '';
+    kundeEmailController.text = kunde.value?.email ?? '';
+
     _isUpdatingControllers = false; // Listener wieder aktivieren
+    
+    // Prüfung nach dem Aktualisieren ausführen
+    _checkCanSaveKunde();
   }
 }

@@ -41,6 +41,101 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
   // Dein PDF-Generator bleibt unverändert (funktioniert super!)
   Future<void> _generateAndSharePdf() async {
     if (_isProcessing) return;
+    
+    // Prüfe ob Firma-Daten vorhanden sind
+    final firmaName = _screenInputController.firmaNameController.text.trim();
+    if (firmaName.isEmpty) {
+      Get.snackbar(
+        "Hinweis",
+        "Bitte geben Sie die Firmendaten ein (mindestens Firmenname).\nGehen Sie zu den Einstellungen, um die Daten einzugeben.",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.orange.withOpacity(0.9),
+        colorText: Colors.white,
+        borderRadius: 15,
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 5),
+        isDismissible: true,
+        mainButton: TextButton(
+          onPressed: () {
+            Get.back(); // Snackbar schließen
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => SettingsScreen()),
+            );
+          },
+          child: const Text(
+            "Einstellungen",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
+      return;
+    }
+    
+    // Prüfe ob Baustelle-Daten vorhanden sind
+    final baustelleStrasse = _screenInputController.baustelleStrasseController.text.trim();
+    final baustellePlz = _screenInputController.baustellePlzController.text.trim();
+    final baustelleOrt = _screenInputController.baustelleOrtController.text.trim();
+    
+    if (baustelleStrasse.isEmpty && baustellePlz.isEmpty && baustelleOrt.isEmpty) {
+      Get.snackbar(
+        "Hinweis",
+        "Bitte geben Sie die Baustelle-Daten ein (mindestens Straße oder PLZ/Ort).\nGehen Sie zu den Einstellungen, um die Daten einzugeben.",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.orange.withOpacity(0.9),
+        colorText: Colors.white,
+        borderRadius: 15,
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 5),
+        isDismissible: true,
+        mainButton: TextButton(
+          onPressed: () {
+            Get.back(); // Snackbar schließen
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => SettingsScreen()),
+            );
+          },
+          child: const Text(
+            "Einstellungen",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
+      return;
+    }
+    
+    // Prüfe ob beide Unterschriften vorhanden sind
+    if (_unterschriftController.kundePngBytes.value == null) {
+      Get.snackbar(
+        "Hinweis",
+        "Bitte geben Sie die Kunden-Unterschrift ein.",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.orange.withOpacity(0.9),
+        colorText: Colors.white,
+        borderRadius: 15,
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 4),
+        isDismissible: true,
+      );
+      return;
+    }
+    
+    if (_unterschriftController.monteurPngBytes.value == null) {
+      Get.snackbar(
+        "Hinweis",
+        "Bitte geben Sie die Monteur-Unterschrift ein.",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.orange.withOpacity(0.9),
+        colorText: Colors.white,
+        borderRadius: 15,
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 4),
+        isDismissible: true,
+      );
+      return;
+    }
+    
     setState(() => _isProcessing = true);
 
     try {
@@ -490,8 +585,17 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
             text: 'Hier ist Ihre Rechnung');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Fehler beim Erstellen des PDFs: $e')));
+      Get.snackbar(
+        "Fehler",
+        "Fehler beim Erstellen des PDFs: $e",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent.withOpacity(0.9),
+        colorText: Colors.white,
+        borderRadius: 15,
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 4),
+        isDismissible: true,
+      );
     } finally {
       setState(() => _isProcessing = false);
     }

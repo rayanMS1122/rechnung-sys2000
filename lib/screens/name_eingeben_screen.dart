@@ -20,13 +20,18 @@ class _NameEingebenScreenState extends State<NameEingebenScreen> {
   final controller = Get.find<ScreenInputController>();
 
   void _showSnackBar(String message, {bool error = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: error ? Colors.redAccent : AppColors.primary,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
+    Get.snackbar(
+      error ? "Fehler" : "Info",
+      message,
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: error ? Colors.redAccent.withOpacity(0.9) : AppColors.primary.withOpacity(0.9),
+      colorText: Colors.white,
+      borderRadius: 15,
+      margin: const EdgeInsets.all(16),
+      duration: const Duration(seconds: 3),
+      isDismissible: true,
+      dismissDirection: DismissDirection.horizontal,
+      forwardAnimationCurve: Curves.easeOutBack,
     );
   }
 
@@ -34,296 +39,364 @@ class _NameEingebenScreenState extends State<NameEingebenScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(20.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(height: 22.h),
-            _buildHeader(context),
-            SizedBox(height: 22.h),
-            // ==================== MONTEUR ====================
-            Obx(() => _sectionHeader(
-              title: "Monteur Informationen",
-              onSearch: () => _selectMonteur(context),
-              showSave: controller.canSaveMonteur.value,
-              onSave: () async {
-                // Validierung
-                if (controller.monteurVornameController.text.trim().isEmpty) {
-                  _showSnackBar("Vorname ist erforderlich", error: true);
-                  return;
-                }
-                if (controller.monteurNachnameController.text.trim().isEmpty) {
-                  _showSnackBar("Nachname ist erforderlich", error: true);
-                  return;
-                }
-                if (controller.monteurTeleController.text.trim().isEmpty) {
-                  _showSnackBar("Telefon ist erforderlich", error: true);
-                  return;
-                }
-                
-                // Aktualisiere monteur.value vor der Prüfung
-                controller.monteur.value = Monteur(
-                  vorname: controller.monteurVornameController.text.trim(),
-                  nachname: controller.monteurNachnameController.text.trim(),
-                  email: controller.monteurEmailController.text.trim(),
-                  telefon: controller.monteurTeleController.text.trim(),
-                );
-                
-                // Speichern
-                final success = await controller.addMonteurToDatabase();
-                if (success) {
-                  _showSnackBar("Monteur gespeichert!");
-                } else {
-                  // Duplikat gefunden, Daten wurden bereits geladen
-                  _showSnackBar("Ein identischer Monteur existiert bereits. Daten wurden geladen.", error: false);
-                }
-              },
-            )),
-            SizedBox(height: 20.h),
+      body: Column(
+        children: [
+          _buildHeader(context),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(20.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: 20.h),
+                  // ==================== MONTEUR ====================
+                  Obx(() => _sectionHeader(
+                        title: "Monteur",
+                        onSearch: () => _selectMonteur(context),
+                        showSave: controller.canSaveMonteur.value,
+                        onSave: () async {
+                          // Validierung
+                          if (controller.monteurVornameController.text
+                              .trim()
+                              .isEmpty) {
+                            _showSnackBar("Vorname ist erforderlich",
+                                error: true);
+                            return;
+                          }
+                          if (controller.monteurNachnameController.text
+                              .trim()
+                              .isEmpty) {
+                            _showSnackBar("Nachname ist erforderlich",
+                                error: true);
+                            return;
+                          }
+                          if (controller.monteurTeleController.text
+                              .trim()
+                              .isEmpty) {
+                            _showSnackBar("Telefon ist erforderlich",
+                                error: true);
+                            return;
+                          }
 
-            customTextField(
-              ctrl: controller.monteurVornameController,
-              label: "Vorname",
-              icon: Icons.badge_outlined,
-              hint: "Max",
-            ),
-            SizedBox(height: 16.h),
-            customTextField(
-              ctrl: controller.monteurNachnameController,
-              label: "Nachname",
-              icon: Icons.person,
-              hint: "Mustermann",
-            ),
-            SizedBox(height: 16.h),
-            customTextField(
-              ctrl: controller.monteurEmailController,
-              label: "E-Mail",
-              icon: Icons.email_outlined,
-              hint: "max@beispiel.de",
-              keyboardType: TextInputType.emailAddress,
-            ),
-            SizedBox(height: 16.h),
-            customTextField(
-              ctrl: controller.monteurTeleController,
-              label: "Telefon",
-              icon: Icons.phone_outlined,
-              hint: "0176 12345678",
-              keyboardType: TextInputType.phone,
-            ),
+                          // Aktualisiere monteur.value vor der Prüfung
+                          controller.monteur.value = Monteur(
+                            vorname:
+                                controller.monteurVornameController.text.trim(),
+                            nachname: controller.monteurNachnameController.text
+                                .trim(),
+                            email:
+                                controller.monteurEmailController.text.trim(),
+                            telefon:
+                                controller.monteurTeleController.text.trim(),
+                          );
 
-            SizedBox(height: 40.h),
+                          // Speichern
+                          final success =
+                              await controller.addMonteurToDatabase();
+                          if (success) {
+                            _showSnackBar("Monteur gespeichert!");
+                          } else {
+                            // Duplikat gefunden, Daten wurden bereits geladen
+                            _showSnackBar(
+                                "Ein identischer Monteur existiert bereits. Daten wurden geladen.",
+                                error: false);
+                          }
+                        },
+                      )),
+                  SizedBox(height: 20.h),
 
-            // ==================== KUNDE ====================
-            Obx(() => _sectionHeader(
-              title: "Kunden Informationen",
-              onSearch: () => _selectKunde(context),
-              showSave: controller.canSaveKunde.value,
-              onSave: () async {
-                // Validierung
-                if (controller.kundeNameController.text.trim().isEmpty) {
-                  _showSnackBar("Name ist erforderlich", error: true);
-                  return;
-                }
-                if (controller.kundeStrasseController.text.trim().isEmpty) {
-                  _showSnackBar("Straße ist erforderlich", error: true);
-                  return;
-                }
-                if (controller.kundePlzController.text.trim().isEmpty) {
-                  _showSnackBar("PLZ ist erforderlich", error: true);
-                  return;
-                }
-                if (controller.kundeOrtController.text.trim().isEmpty) {
-                  _showSnackBar("Ort ist erforderlich", error: true);
-                  return;
-                }
-                
-                // Aktualisiere kunde.value vor der Prüfung
-                controller.kunde.value = Kunde(
-                  name: controller.kundeNameController.text.trim(),
-                  strasse: controller.kundeStrasseController.text.trim(),
-                  plz: controller.kundePlzController.text.trim(),
-                  ort: controller.kundeOrtController.text.trim(),
-                  telefon: controller.kundeTeleController.text.trim(),
-                  email: controller.kundeEmailController.text.trim(),
-                );
-                
-                // Speichern
-                final success = await controller.addKundeToDatabase();
-                if (success) {
-                  _showSnackBar("Kunde gespeichert!");
-                } else {
-                  // Duplikat gefunden, Daten wurden bereits geladen
-                  _showSnackBar("Ein identischer Kunde existiert bereits. Daten wurden geladen.", error: false);
-                }
-              },
-            )),
-            SizedBox(height: 20.h),
-
-            customTextField(
-              ctrl: controller.kundeNameController,
-              label: "Firmenname / Name",
-              icon: Icons.business,
-              hint: "Muster GmbH",
-            ),
-            SizedBox(height: 16.h),
-            customTextField(
-              ctrl: controller.kundeStrasseController,
-              label: "Straße & Hausnr.",
-              icon: Icons.location_on_outlined,
-              hint: "Musterstraße 12",
-            ),
-            SizedBox(height: 16.h),
-            Row(
-              children: [
-                Expanded(
-                  child: customTextField(
-                    ctrl: controller.kundePlzController,
-                    label: "PLZ",
-                    icon: Icons.pin,
-                    hint: "12345",
-                    keyboardType: TextInputType.number,
+                  customTextField(
+                    ctrl: controller.monteurVornameController,
+                    label: "Vorname",
+                    icon: Icons.badge_outlined,
+                    hint: "Max",
                   ),
-                ),
-                SizedBox(width: 16.w),
-                Expanded(
-                  flex: 2,
-                  child: customTextField(
-                    ctrl: controller.kundeOrtController,
-                    label: "Ort",
-                    icon: Icons.location_city_outlined,
-                    hint: "Musterstadt",
+                  SizedBox(height: 16.h),
+                  customTextField(
+                    ctrl: controller.monteurNachnameController,
+                    label: "Nachname",
+                    icon: Icons.person,
+                    hint: "Mustermann",
                   ),
-                ),
-              ],
-            ),
-            SizedBox(height: 16.h),
-            customTextField(
-              ctrl: controller.kundeTeleController,
-              label: "Telefon",
-              icon: Icons.phone_outlined,
-              hint: "0231 123456",
-              keyboardType: TextInputType.phone,
-            ),
-            SizedBox(height: 16.h),
-            customTextField(
-              ctrl: controller.kundeEmailController,
-              label: "E-Mail",
-              icon: Icons.email_outlined,
-              hint: "info@musterfirma.de",
-              keyboardType: TextInputType.emailAddress,
-            ),
-
-            SizedBox(height: 60.h),
-
-            // ==================== WEITER BUTTON ====================
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  // Validierung für Monteur
-                  if (controller.monteurVornameController.text.trim().isEmpty) {
-                    _showSnackBar("Monteur Vorname ist erforderlich", error: true);
-                    return;
-                  }
-                  if (controller.monteurNachnameController.text.trim().isEmpty) {
-                    _showSnackBar("Monteur Nachname ist erforderlich", error: true);
-                    return;
-                  }
-                  if (controller.monteurTeleController.text.trim().isEmpty) {
-                    _showSnackBar("Monteur Telefon ist erforderlich", error: true);
-                    return;
-                  }
-                  
-                  // Validierung für Kunde
-                  if (controller.kundeNameController.text.trim().isEmpty) {
-                    _showSnackBar("Kundenname ist erforderlich", error: true);
-                    return;
-                  }
-                  if (controller.kundeStrasseController.text.trim().isEmpty) {
-                    _showSnackBar("Kunde Straße ist erforderlich", error: true);
-                    return;
-                  }
-                  if (controller.kundePlzController.text.trim().isEmpty) {
-                    _showSnackBar("Kunde PLZ ist erforderlich", error: true);
-                    return;
-                  }
-                  if (controller.kundeOrtController.text.trim().isEmpty) {
-                    _showSnackBar("Kunde Ort ist erforderlich", error: true);
-                    return;
-                  }
-                  
-                  // Werte aktualisieren
-                  controller.monteur.value = Monteur(
-                    vorname: controller.monteurVornameController.text.trim(),
-                    nachname: controller.monteurNachnameController.text.trim(),
-                    email: controller.monteurEmailController.text.trim(),
-                    telefon: controller.monteurTeleController.text.trim(),
-                  );
-                  
-                  controller.kunde.value = Kunde(
-                    name: controller.kundeNameController.text.trim(),
-                    strasse: controller.kundeStrasseController.text.trim(),
-                    plz: controller.kundePlzController.text.trim(),
-                    ort: controller.kundeOrtController.text.trim(),
-                    telefon: controller.kundeTeleController.text.trim(),
-                    email: controller.kundeEmailController.text.trim(),
-                  );
-                  
-                  Get.to(() => const ScreenInput());
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(vertical: 18.h),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
+                  SizedBox(height: 16.h),
+                  customTextField(
+                    ctrl: controller.monteurEmailController,
+                    label: "E-Mail",
+                    icon: Icons.email_outlined,
+                    hint: "max@beispiel.de",
+                    keyboardType: TextInputType.emailAddress,
                   ),
-                ),
-                child: const Text(
-                  "Weiter zur Rechnung",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                ),
+                  SizedBox(height: 16.h),
+                  customTextField(
+                    ctrl: controller.monteurTeleController,
+                    label: "Telefon",
+                    icon: Icons.phone_outlined,
+                    hint: "0176 12345678",
+                    keyboardType: TextInputType.phone,
+                  ),
+
+                  SizedBox(height: 40.h),
+
+                  // ==================== KUNDE ====================
+                  Obx(() => _sectionHeader(
+                        title: "Kunde",
+                        onSearch: () => _selectKunde(context),
+                        showSave: controller.canSaveKunde.value,
+                        onSave: () async {
+                          // Validierung
+                          if (controller.kundeNameController.text
+                              .trim()
+                              .isEmpty) {
+                            _showSnackBar("Name ist erforderlich", error: true);
+                            return;
+                          }
+                          if (controller.kundeStrasseController.text
+                              .trim()
+                              .isEmpty) {
+                            _showSnackBar("Straße ist erforderlich",
+                                error: true);
+                            return;
+                          }
+                          if (controller.kundePlzController.text
+                              .trim()
+                              .isEmpty) {
+                            _showSnackBar("PLZ ist erforderlich", error: true);
+                            return;
+                          }
+                          if (controller.kundeOrtController.text
+                              .trim()
+                              .isEmpty) {
+                            _showSnackBar("Ort ist erforderlich", error: true);
+                            return;
+                          }
+
+                          // Aktualisiere kunde.value vor der Prüfung
+                          controller.kunde.value = Kunde(
+                            name: controller.kundeNameController.text.trim(),
+                            strasse:
+                                controller.kundeStrasseController.text.trim(),
+                            plz: controller.kundePlzController.text.trim(),
+                            ort: controller.kundeOrtController.text.trim(),
+                            telefon: controller.kundeTeleController.text.trim(),
+                            email: controller.kundeEmailController.text.trim(),
+                          );
+
+                          // Speichern
+                          final success = await controller.addKundeToDatabase();
+                          if (success) {
+                            _showSnackBar("Kunde gespeichert!");
+                          } else {
+                            // Duplikat gefunden, Daten wurden bereits geladen
+                            _showSnackBar(
+                                "Ein identischer Kunde existiert bereits. Daten wurden geladen.",
+                                error: false);
+                          }
+                        },
+                      )),
+                  SizedBox(height: 20.h),
+
+                  customTextField(
+                    ctrl: controller.kundeNameController,
+                    label: "Name / Firmenname",
+                    icon: Icons.business,
+                    hint: "Muster GmbH",
+                  ),
+                  SizedBox(height: 16.h),
+                  customTextField(
+                    ctrl: controller.kundeStrasseController,
+                    label: "Straße",
+                    icon: Icons.location_on_outlined,
+                    hint: "Musterstraße 12",
+                  ),
+                  SizedBox(height: 16.h),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: customTextField(
+                          ctrl: controller.kundePlzController,
+                          label: "PLZ",
+                          icon: Icons.pin,
+                          hint: "12345",
+                          keyboardType: TextInputType.number,
+                        ),
+                      ),
+                      SizedBox(width: 16.w),
+                      Expanded(
+                        flex: 2,
+                        child: customTextField(
+                          ctrl: controller.kundeOrtController,
+                          label: "Ort",
+                          icon: Icons.location_city_outlined,
+                          hint: "Musterstadt",
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16.h),
+                  customTextField(
+                    ctrl: controller.kundeTeleController,
+                    label: "Telefon",
+                    icon: Icons.phone_outlined,
+                    hint: "0231 123456",
+                    keyboardType: TextInputType.phone,
+                  ),
+                  SizedBox(height: 16.h),
+                  customTextField(
+                    ctrl: controller.kundeEmailController,
+                    label: "E-Mail",
+                    icon: Icons.email_outlined,
+                    hint: "info@musterfirma.de",
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+
+                  SizedBox(height: 60.h),
+
+                  // ==================== WEITER BUTTON ====================
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        // Validierung für Monteur
+                        if (controller.monteurVornameController.text
+                            .trim()
+                            .isEmpty) {
+                          _showSnackBar("Monteur Vorname ist erforderlich",
+                              error: true);
+                          return;
+                        }
+                        if (controller.monteurNachnameController.text
+                            .trim()
+                            .isEmpty) {
+                          _showSnackBar("Monteur Nachname ist erforderlich",
+                              error: true);
+                          return;
+                        }
+                        if (controller.monteurTeleController.text
+                            .trim()
+                            .isEmpty) {
+                          _showSnackBar("Monteur Telefon ist erforderlich",
+                              error: true);
+                          return;
+                        }
+
+                        // Validierung für Kunde
+                        if (controller.kundeNameController.text
+                            .trim()
+                            .isEmpty) {
+                          _showSnackBar("Kundenname ist erforderlich",
+                              error: true);
+                          return;
+                        }
+                        if (controller.kundeStrasseController.text
+                            .trim()
+                            .isEmpty) {
+                          _showSnackBar("Kunde Straße ist erforderlich",
+                              error: true);
+                          return;
+                        }
+                        if (controller.kundePlzController.text.trim().isEmpty) {
+                          _showSnackBar("Kunde PLZ ist erforderlich",
+                              error: true);
+                          return;
+                        }
+                        if (controller.kundeOrtController.text.trim().isEmpty) {
+                          _showSnackBar("Kunde Ort ist erforderlich",
+                              error: true);
+                          return;
+                        }
+
+                        // Werte aktualisieren
+                        controller.monteur.value = Monteur(
+                          vorname:
+                              controller.monteurVornameController.text.trim(),
+                          nachname:
+                              controller.monteurNachnameController.text.trim(),
+                          email: controller.monteurEmailController.text.trim(),
+                          telefon: controller.monteurTeleController.text.trim(),
+                        );
+
+                        controller.kunde.value = Kunde(
+                          name: controller.kundeNameController.text.trim(),
+                          strasse:
+                              controller.kundeStrasseController.text.trim(),
+                          plz: controller.kundePlzController.text.trim(),
+                          ort: controller.kundeOrtController.text.trim(),
+                          telefon: controller.kundeTeleController.text.trim(),
+                          email: controller.kundeEmailController.text.trim(),
+                        );
+
+                        Get.to(() => const ScreenInput());
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(vertical: 18.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                      child: const Text(
+                        "Weiter zur Rechnung",
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 40.h),
+                ],
               ),
             ),
-            SizedBox(height: 40.h),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildHeader(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        // GestureDetector(
-        //   onTap: () => Navigator.maybePop(context),
-        //   child: Image.asset(
-        //     "assets/images/arrow-back-simple.png",
-        //     width: 24.w,
-        //     height: 24.h,
-        //   ),
-        // ),
-        Text(""),
-        Text(
-          "Eingabe",
-          style: Theme.of(
-            context,
-          ).textTheme.headlineSmall!.copyWith(
-              fontSize: 24.sp,
-              color: AppColors.primary,
-              fontWeight: FontWeight.bold),
-        ),
-        Row(
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      color: AppColors.background,
+      child: SafeArea(
+        bottom: false,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Padding(
-            //   padding: EdgeInsets.symmetric(horizontal: 12.w),
-            //   child: Icon(Icons.search, color: AppColors.primary, size: 24.w),
+            // Back Button
+            // GestureDetector(
+            //   onTap: () => Navigator.maybePop(context),
+            //   child: Container(
+            //     padding: EdgeInsets.all(8.w),
+            //     decoration: BoxDecoration(
+            //       color: AppColors.primary.withOpacity(0.1),
+            //       borderRadius: BorderRadius.circular(12.r),
+            //     ),
+            //     child: Icon(
+            //       Icons.arrow_back,
+            //       color: AppColors.primary,
+            //       size: 24.sp,
+            //     ),
+            //   ),
             // ),
+            SizedBox(width: 40.w), // Platzhalter für Symmetrie
+            // Titel zentriert
+            Expanded(
+              child: Center(
+                child: Text(
+                  "Kunde & Monteur",
+                  style: TextStyle(
+                    fontSize: 20.sp,
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+
+            // Platzhalter für Symmetrie
+            SizedBox(width: 40.w),
           ],
         ),
-      ],
+      ),
     );
   }
 
@@ -351,11 +424,15 @@ class _NameEingebenScreenState extends State<NameEingebenScreen> {
               onPressed: onSearch,
               icon: Icon(Icons.search, color: AppColors.primary),
             ),
-            if (showSave)
-              IconButton(
-                onPressed: onSave,
-                icon: Icon(Icons.save, color: AppColors.primary),
+            IconButton(
+              onPressed: showSave ? onSave : null,
+              icon: Icon(
+                Icons.save,
+                color: showSave 
+                    ? AppColors.primary 
+                    : AppColors.primary.withOpacity(0.2),
               ),
+            ),
           ],
         ),
       ],
@@ -419,7 +496,7 @@ class _NameEingebenScreenState extends State<NameEingebenScreen> {
   void _selectMonteur(BuildContext context) async {
     // Daten neu laden bevor Dialog geöffnet wird
     await controller.reloadAllData();
-    
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -454,10 +531,9 @@ class _NameEingebenScreenState extends State<NameEingebenScreen> {
                             "${monteur['vorname'] ?? ''} ${monteur['nachname'] ?? ''}"),
                         subtitle: Text(monteur['telefon'] ?? ''),
                         onTap: () async {
+                          Navigator.pop(context);
                           await controller
                               .selectMonteurFromDatabase(monteur['id']);
-                          Navigator.pop(context);
-                          _showSnackBar("Monteur geladen!");
                         },
                       );
                     },
@@ -475,7 +551,7 @@ class _NameEingebenScreenState extends State<NameEingebenScreen> {
   void _selectKunde(BuildContext context) async {
     // Daten neu laden bevor Dialog geöffnet wird
     await controller.reloadAllData();
-    
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -509,9 +585,8 @@ class _NameEingebenScreenState extends State<NameEingebenScreen> {
                         subtitle: Text(
                             "${kunde['strasse'] ?? ''}, ${kunde['plz'] ?? ''} ${kunde['ort'] ?? ''}"),
                         onTap: () async {
-                          await controller.selectKundeFromDatabase(kunde['id']);
                           Navigator.pop(context);
-                          _showSnackBar("Kunde geladen!");
+                          await controller.selectKundeFromDatabase(kunde['id']);
                         },
                       );
                     },
