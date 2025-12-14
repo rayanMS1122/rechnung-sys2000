@@ -8,6 +8,13 @@ import 'package:intl/intl.dart';
 import 'package:reciepts/constants.dart';
 import 'package:reciepts/controller/screen_input_controller.dart';
 import 'package:reciepts/controller/unterschrift_controller.dart';
+import 'package:reciepts/controller/firma_controller.dart';
+import 'package:reciepts/controller/kunde_controller.dart';
+import 'package:reciepts/controller/monteur_controller.dart';
+import 'package:reciepts/controller/baustelle_controller.dart';
+import 'package:reciepts/services/einstellungen_service.dart';
+import 'package:reciepts/services/bilder_service.dart';
+import 'package:reciepts/services/rechnung_service.dart';
 import 'package:reciepts/screens/name_eingeben_screen.dart';
 
 void main() async {
@@ -17,6 +24,19 @@ void main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitUp,
   ]);
+  
+  // Initialize Services first
+  Get.put(EinstellungenService(), permanent: true);
+  Get.put(RechnungService(), permanent: true);
+  Get.put(BilderService(), permanent: true);
+  
+  // Initialize Controllers
+  Get.put(FirmaController(), permanent: true);
+  Get.put(KundeController(), permanent: true);
+  Get.put(MonteurController(), permanent: true);
+  Get.put(BaustelleController(), permanent: true);
+  
+  // Initialize main controllers
   Get.put(UnterschriftController());
   Get.put(ScreenInputController());
   runApp(const MyApp());

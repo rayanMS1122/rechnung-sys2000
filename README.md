@@ -6,6 +6,155 @@ Dieses Dokument erklärt **alle Fehler**, die in der App gemacht wurden, und zei
 
 ---
 
+## 🔄 REFACTORING - Code-Aufteilung (Dezember 2024)
+
+### 📦 Was wurde gemacht?
+
+Der große `screen_input_controller.dart` (1087 Zeilen) wurde in mehrere, besser organisierte Module aufgeteilt, um die Wartbarkeit und Lesbarkeit des Codes zu verbessern.
+
+### 🎯 Neue Struktur
+
+#### **Controller (lib/controller/)**
+1. **`firma_controller.dart`** - Verwaltet alle Firma-bezogenen Daten und Operationen
+   - Firma-Daten (Name, Adresse, Kontakt)
+   - TextControllers für Firma-Felder
+   - CRUD-Operationen für Firmen
+   - Liste aller Firmen für Dropdowns
+
+2. **`kunde_controller.dart`** - Verwaltet alle Kunde-bezogenen Daten und Operationen
+   - Kunde-Daten (Name, Adresse, Kontakt)
+   - TextControllers für Kunde-Felder
+   - Duplikat-Prüfung und Validierung
+   - CRUD-Operationen für Kunden
+   - Liste aller Kunden für Dropdowns
+
+3. **`monteur_controller.dart`** - Verwaltet alle Monteur-bezogenen Daten und Operationen
+   - Monteur-Daten (Vorname, Nachname, Kontakt)
+   - TextControllers für Monteur-Felder
+   - Duplikat-Prüfung und Validierung
+   - CRUD-Operationen für Monteure
+   - Liste aller Monteure für Dropdowns
+
+4. **`baustelle_controller.dart`** - Verwaltet alle Baustelle-bezogenen Daten und Operationen
+   - Baustelle-Daten (Adresse)
+   - TextControllers für Baustelle-Felder
+   - CRUD-Operationen für Baustellen
+   - Liste aller Baustellen für Dropdowns
+
+#### **Services (lib/services/)**
+1. **`einstellungen_service.dart`** - Verwaltet App-Einstellungen
+   - Logo-Verwaltung (Laden, Speichern, Zurücksetzen)
+   - Bearbeitungsmodus (enableEditing)
+   - Laden und Speichern von Einstellungen aus der Datenbank
+
+2. **`bilder_service.dart`** - Verwaltet Bilder für Rechnungspositionen
+   - Bilder zu Positionen hinzufügen (Galerie/Kamera)
+   - Bilder von Positionen entfernen
+   - Bildverwaltung und Dateisystem-Operationen
+
+3. **`rechnung_service.dart`** - Verwaltet Rechnungspositionen
+   - Neue Positionen hinzufügen
+   - Positionen entfernen
+   - Liste der Rechnungspositionen verwalten
+
+#### **Hauptcontroller**
+- **`screen_input_controller.dart`** (refactored) - Orchestriert alle Module
+  - Delegiert Methoden an die entsprechenden Controller/Services
+  - Behält die gleiche öffentliche API für Kompatibilität
+  - Initialisiert und koordiniert alle Module
+  - Stellt Convenience-Getter bereit für einfachen Zugriff
+
+### ✅ Vorteile des Refactorings
+
+1. **Bessere Organisation**
+   - Jeder Controller/Service hat eine klare, einzige Verantwortung
+   - Logisch gruppierte Funktionalität
+   - Einfacher zu verstehen und zu navigieren
+
+2. **Verbesserte Wartbarkeit**
+   - Änderungen sind isoliert in spezifischen Modulen
+   - Weniger Risiko von Seiteneffekten
+   - Einfacher zu debuggen
+
+3. **Bessere Testbarkeit**
+   - Module können einzeln getestet werden
+   - Klare Abhängigkeiten
+   - Einfacher Mocking für Tests
+
+4. **Bessere Lesbarkeit**
+   - Kleinere, fokussierte Dateien (statt einer 1087-Zeilen-Datei)
+   - Klare Struktur und Namensgebung
+   - Einfacher für neue Entwickler zu verstehen
+
+5. **Skalierbarkeit**
+   - Neue Features können einfach als neue Module hinzugefügt werden
+   - Bestehende Module bleiben unverändert
+   - Einfacher zu erweitern
+
+### 🔧 Technische Details
+
+#### Initialisierung (lib/main.dart)
+```dart
+// Services zuerst initialisieren (permanent)
+Get.put(EinstellungenService(), permanent: true);
+Get.put(RechnungService(), permanent: true);
+Get.put(BilderService(), permanent: true);
+
+// Controller initialisieren (permanent)
+Get.put(FirmaController(), permanent: true);
+Get.put(KundeController(), permanent: true);
+Get.put(MonteurController(), permanent: true);
+Get.put(BaustelleController(), permanent: true);
+
+// Hauptcontroller initialisieren
+Get.put(ScreenInputController());
+```
+
+#### API-Kompatibilität
+Der refactorierte `ScreenInputController` behält die gleiche öffentliche API bei:
+- Alle Getter funktionieren wie vorher
+- Alle Methoden haben die gleichen Signaturen
+- Bestehender Code muss nicht geändert werden
+
+#### Abhängigkeiten
+- `BilderService` verwendet `RechnungService` für Zugriff auf Rechnungspositionen
+- `BaustelleController` benötigt Referenz zu `KundeController` für kundeId
+- Alle Module sind über GetX Dependency Injection verbunden
+
+### 📁 Dateistruktur
+
+```
+lib/
+├── controller/
+│   ├── firma_controller.dart          (neu)
+│   ├── kunde_controller.dart          (neu)
+│   ├── monteur_controller.dart        (neu)
+│   ├── baustelle_controller.dart      (neu)
+│   ├── screen_input_controller.dart   (refactored)
+│   └── unterschrift_controller.dart   (unverändert)
+├── services/
+│   ├── einstellungen_service.dart     (neu)
+│   ├── bilder_service.dart            (neu)
+│   └── rechnung_service.dart          (neu)
+└── ...
+```
+
+### 🔄 Migration
+
+**Keine Breaking Changes!** 
+- Die alte `screen_input_controller.dart` wurde als `screen_input_controller_old.dart` gesichert
+- Alle bestehenden Screens und Widgets funktionieren ohne Änderungen
+- Die öffentliche API bleibt identisch
+
+### 📊 Statistik
+
+- **Vorher:** 1 Datei mit 1087 Zeilen
+- **Nachher:** 8 Module mit durchschnittlich ~150 Zeilen pro Datei
+- **Reduzierung:** ~85% weniger Code pro Datei
+- **Verbesserung:** Deutlich bessere Wartbarkeit und Lesbarkeit
+
+---
+
 ## ❌ KRITISCHE FEHLER (Müssen sofort behoben werden)
 
 ### 1. **Fehlende Dependency: `path_provider`**
