@@ -48,7 +48,7 @@ class EinstellungenService extends GetxService {
     final data = {
       ...firmaData,
       ...baustelleData,
-      'logo_path': logo.value.path == 'assets/system2000_logo.png' ? '' : logo.value.path,
+      'logo_path': logo.value.path == 'assets/senat.png' ? '' : logo.value.path,
       'enable_editing': enableEditing.value ? 1 : 0,
       'last_monteur_id': lastMonteurId,
       'last_kunde_id': lastKundeId,
@@ -80,7 +80,7 @@ class EinstellungenService extends GetxService {
   }
 
   void resetLogo() {
-    logo.value = XFile('assets/system2000_logo.png');
+    logo.value = XFile('assets/senat.png');
   }
 
   void _showSnackBar(String title, String message, {bool isError = false}) {

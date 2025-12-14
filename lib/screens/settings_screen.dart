@@ -208,7 +208,7 @@ class SettingsScreen extends StatelessWidget {
                                     width: 240.w,
                                     fit: BoxFit.contain,
                                     errorBuilder: (_, __, ___) => Image.asset(
-                                      'assets/system2000_logo.png',
+                                      'assets/senat.png',
                                       height: 120.h,
                                       width: 240.w,
                                       fit: BoxFit.contain,

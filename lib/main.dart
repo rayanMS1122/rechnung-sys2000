@@ -62,7 +62,7 @@ class MyApp extends StatelessWidget {
           GlobalCupertinoLocalizations.delegate,
         ],
         debugShowCheckedModeBanner: false,
-        title: 'Rechnungs App',
+        title: 'Senat',
         theme: ThemeData(
           useMaterial3: true,
           primaryColor: AppColors.surface,
