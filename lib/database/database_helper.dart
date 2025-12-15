@@ -31,7 +31,7 @@ class DatabaseHelper {
       // Datenbank öffnen/erstellen
       final db = await openDatabase(
         path,
-        version: 2, // Version erhöht für neue Felder
+        version: 5, // Version erhöht für neue Felder
         onCreate: _createDB,
         onUpgrade: _onUpgrade,
       );
@@ -116,54 +116,120 @@ class DatabaseHelper {
 ''');
   }
 
+  Future<void> deleteDatabaseFile() async {
+    final dbPath = await getDatabasesPath();
+    final path = join(
+        dbPath, 'test'); // Ersetze 'test' mit deinem DB-Namen aus deinem Code!
+    // In deinem Code heißt sie: 'assets/test_DB/test' → also wahrscheinlich nur 'test'
+    await deleteDatabase(path);
+    debugPrint('Datenbank gelöscht: $path');
+  }
+
 // Wird aufgerufen, wenn Datenbank-Version erhöht wird (schrittweise Upgrades)
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
     debugPrint('Datenbank-Upgrade von Version $oldVersion auf $newVersion');
-    
-    // Transaktion für konsistente Upgrades
+
     await db.transaction((txn) async {
-      // Schrittweise Upgrades durchführen
-      for (int version = oldVersion + 1; version <= newVersion; version++) {
-        switch (version) {
-          case 2:
-            // Upgrade auf Version 2: Neue Spalten für letzte Auswahl
-            try {
-              await txn.execute('ALTER TABLE einstellungen ADD COLUMN last_monteur_id INTEGER');
-              await txn.execute('ALTER TABLE einstellungen ADD COLUMN last_kunde_id INTEGER');
-              debugPrint('Datenbank erfolgreich auf Version 2 aktualisiert');
-            } catch (e) {
-              debugPrint('Fehler beim Upgrade auf Version 2: $e');
-              // Falls Spalten bereits existieren, ignorieren
-            }
-            break;
-          // Hier können zukünftige Upgrades hinzugefügt werden:
-          // case 3:
-          //   await txn.execute('...');
-          //   break;
-          default:
-            debugPrint('Unbekannte Datenbank-Version: $version');
+      if (oldVersion < 5) {
+        // Alle Bank-Spalten hinzufügen (falls noch nicht vorhanden)
+        final columnsToAdd = [
+          'bank_name TEXT',
+          'bank_iban TEXT',
+          'bank_bic TEXT',
+          'bank_amount TEXT',
+          'bank_purpose TEXT',
+          'bank_qr_data TEXT',
+        ];
+
+        for (var column in columnsToAdd) {
+          try {
+            await txn.execute('ALTER TABLE einstellungen ADD COLUMN $column');
+            debugPrint('Spalte hinzugefügt: $column');
+          } catch (e) {
+            // Spalte existiert bereits → ignorieren
+            debugPrint('Spalte existierte bereits oder Fehler: $column → $e');
+          }
         }
       }
+
+      // Hier können zukünftige Versionen kommen, z. B.:
+      // if (oldVersion < 5) { ... }
     });
   }
 
-// Speichert oder aktualisiert die Einstellungen (upsert) mit Transaktion
-  Future<void> saveEinstellungen(Map<String, dynamic> data) async {
+// Speichert Bankdaten in der einstellungen-Tabelle
+  Future<void> saveBankData({
+    required String name,
+    required String iban,
+    required String bic,
+    required String amount,
+    required String purpose,
+    required String qrData,
+  }) async {
     final db = await instance.database;
-    
+
+    final Map<String, dynamic> bankData = {
+      'bank_name': name,
+      'bank_iban': iban,
+      'bank_bic': bic.isEmpty ? null : bic,
+      'bank_amount': amount,
+      'bank_purpose': purpose.isEmpty ? null : purpose,
+      'bank_qr_data': qrData.isEmpty ? null : qrData,
+    };
+
     try {
       await db.transaction((txn) async {
         final count = Sqflite.firstIntValue(
           await txn.rawQuery('SELECT COUNT(*) FROM einstellungen'),
         );
-        
+
+        if (count == 0) {
+          bankData['id'] = 1;
+          await txn.insert('einstellungen', bankData);
+        } else {
+          await txn.update('einstellungen', bankData,
+              where: 'id = ?', whereArgs: [1]);
+        }
+      });
+    } catch (e) {
+      debugPrint('Fehler beim Speichern der Bankdaten: $e');
+      rethrow;
+    }
+  }
+
+  // Lädt gespeicherte Bankdaten
+  Future<Map<String, dynamic>?> getBankData() async {
+    final settings = await getEinstellungen();
+    if (settings == null) return null;
+
+    return {
+      'name': settings['bank_name'] ?? '',
+      'iban': settings['bank_iban'] ?? '',
+      'bic': settings['bank_bic'] ?? '',
+      'amount': settings['bank_amount'] ?? '',
+      'purpose': settings['bank_purpose'] ?? '',
+      'qrData': settings['bank_qr_data'] ?? '',
+    };
+  }
+
+  // Speichert oder aktualisiert die Einstellungen (upsert) mit Transaktion
+  Future<void> saveEinstellungen(Map<String, dynamic> data) async {
+    final db = await instance.database;
+
+    try {
+      await db.transaction((txn) async {
+        final count = Sqflite.firstIntValue(
+          await txn.rawQuery('SELECT COUNT(*) FROM einstellungen'),
+        );
+
         if (count == 0) {
           // Erste Speicherung
           data['id'] = 1;
           await txn.insert('einstellungen', data);
         } else {
           // Update bestehende Zeile
-          await txn.update('einstellungen', data, where: 'id = ?', whereArgs: [1]);
+          await txn
+              .update('einstellungen', data, where: 'id = ?', whereArgs: [1]);
         }
       });
     } catch (e) {
@@ -282,18 +348,19 @@ class DatabaseHelper {
       final ort = (row['ort']?.toString() ?? '').trim();
       final telefon = (row['telefon']?.toString() ?? '').trim();
       final email = (row['email']?.toString() ?? '').trim();
-      
+
       // Prüfe auf identischen Kunden: Name + PLZ + Ort
       if (name.isNotEmpty && plz.isNotEmpty && ort.isNotEmpty) {
         final result = await db.query(
           'kunde',
-          where: 'LOWER(TRIM(name)) = ? AND LOWER(TRIM(plz)) = ? AND LOWER(TRIM(ort)) = ?',
+          where:
+              'LOWER(TRIM(name)) = ? AND LOWER(TRIM(plz)) = ? AND LOWER(TRIM(ort)) = ?',
           whereArgs: [name.toLowerCase(), plz.toLowerCase(), ort.toLowerCase()],
           limit: 1,
         );
         if (result.isNotEmpty) return true;
       }
-      
+
       // Prüfe auf identischen Kunden: Name + Telefon
       if (name.isNotEmpty && telefon.isNotEmpty) {
         final result = await db.query(
@@ -304,7 +371,7 @@ class DatabaseHelper {
         );
         if (result.isNotEmpty) return true;
       }
-      
+
       // Prüfe auf identischen Kunden: Name + Email
       if (name.isNotEmpty && email.isNotEmpty) {
         final result = await db.query(
@@ -315,7 +382,7 @@ class DatabaseHelper {
         );
         if (result.isNotEmpty) return true;
       }
-      
+
       return false;
     } catch (e) {
       debugPrint('Fehler bei kundeExists: $e');
@@ -377,7 +444,7 @@ class DatabaseHelper {
       final vorname = (row['vorname']?.toString() ?? '').trim();
       final nachname = (row['nachname']?.toString() ?? '').trim();
       final telefon = (row['telefon']?.toString() ?? '').trim();
-      
+
       // Prüfe auf identischen Monteur: Vorname + Nachname
       if (vorname.isNotEmpty && nachname.isNotEmpty) {
         final result = await db.query(
@@ -388,18 +455,23 @@ class DatabaseHelper {
         );
         if (result.isNotEmpty) return true;
       }
-      
+
       // Prüfe auf identischen Monteur: Vorname + Nachname + Telefon
       if (vorname.isNotEmpty && nachname.isNotEmpty && telefon.isNotEmpty) {
         final result = await db.query(
           'monteur',
-          where: 'LOWER(TRIM(vorname)) = ? AND LOWER(TRIM(nachname)) = ? AND LOWER(TRIM(telefon)) = ?',
-          whereArgs: [vorname.toLowerCase(), nachname.toLowerCase(), telefon.toLowerCase()],
+          where:
+              'LOWER(TRIM(vorname)) = ? AND LOWER(TRIM(nachname)) = ? AND LOWER(TRIM(telefon)) = ?',
+          whereArgs: [
+            vorname.toLowerCase(),
+            nachname.toLowerCase(),
+            telefon.toLowerCase()
+          ],
           limit: 1,
         );
         if (result.isNotEmpty) return true;
       }
-      
+
       return false;
     } catch (e) {
       debugPrint('Fehler bei monteurExists: $e');
@@ -437,7 +509,8 @@ class DatabaseHelper {
       final db = await instance.database;
       final id = row['id'] as int;
       if (id <= 0) throw Exception('Ungültige ID für Update');
-      return await db.update('baustelle', row, where: 'id = ?', whereArgs: [id]);
+      return await db
+          .update('baustelle', row, where: 'id = ?', whereArgs: [id]);
     } catch (e) {
       debugPrint('Fehler beim Aktualisieren der Baustelle: $e');
       rethrow;

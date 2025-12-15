@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:intl/intl.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:reciepts/controller/screen_input_controller.dart';
 import 'package:reciepts/controller/unterschrift_controller.dart';
 import 'package:reciepts/widgets/reciept_row.dart';
@@ -25,7 +26,7 @@ class _ReceiptContentState extends State<ReceiptContent> {
   final UnterschriftController _unterschriftController = Get.find();
   final ScreenInputController _screenInputController = Get.find();
   double gesamtBetrag = 0;
-  
+
   // Deutsche Zahlenformatierung (Komma statt Punkt, immer 2 Dezimalstellen)
   final NumberFormat _numberFormat = NumberFormat('#,##0.00', 'de_DE');
 
@@ -35,7 +36,7 @@ class _ReceiptContentState extends State<ReceiptContent> {
       gesamtBetrag += element.gesamtPreis;
     }
   }
-  
+
   // Hilfsfunktion für deutsche Zahlenformatierung
   String _formatNumber(double value) {
     // NumberFormat mit 'de_DE' verwendet bereits Komma als Dezimaltrennzeichen
@@ -52,7 +53,7 @@ class _ReceiptContentState extends State<ReceiptContent> {
   Widget build(BuildContext context) {
     // Gesamtbetrag bei jedem Build neu berechnen
     calcGesamtBetrag();
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -233,7 +234,53 @@ class _ReceiptContentState extends State<ReceiptContent> {
               ],
             ),
           ),
-          const SizedBox(height: 30),
+          // Nach dem "Gesamtbetrag:"-Block (direkt nach dem Padding mit Row für Gesamtbetrag)
+
+          const SizedBox(height: 40),
+          Obx(() {
+            // GetX erkennt hier klar die observable Nutzung
+            final bool hasQr = _screenInputController.qrData != null &&
+                _screenInputController.qrData!.value.isNotEmpty;
+
+            if (!hasQr) {
+              return Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.qr_code_2,
+                        size: 80, color: Colors.grey.shade400),
+                    const SizedBox(height: 10),
+                    Text(
+                      "Kein QR-Code generiert\nGehe zu 'Bankdaten → QR-Code generieren'",
+                      textAlign: TextAlign.center,
+                      style:
+                          TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return Center(
+              child: Column(
+                children: [
+                  QrImageView(
+                    data: _screenInputController.qrData!.value,
+                    version: QrVersions.auto,
+                    size: 220,
+                    gapless: false,
+                    errorCorrectionLevel: QrErrorCorrectLevel.M,
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    "Scannen Sie diesen QR-Code mit Ihrer Banking-App",
+                    style: TextStyle(fontSize: 14, color: Colors.black87),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            );
+          }),
 
           // Kunde & Monteur Section
           _buildSectionTitle("Kunde & Monteur"),
@@ -257,14 +304,17 @@ class _ReceiptContentState extends State<ReceiptContent> {
                         if (_screenInputController.kunde.value.name.isNotEmpty)
                           _buildInfoText(
                               _screenInputController.kunde.value.name),
-                        if (_screenInputController.kunde.value.strasse.isNotEmpty)
+                        if (_screenInputController
+                            .kunde.value.strasse.isNotEmpty)
                           _buildInfoText(
                               _screenInputController.kunde.value.strasse),
                         if (_screenInputController.kunde.value.plz.isNotEmpty ||
                             _screenInputController.kunde.value.ort.isNotEmpty)
                           _buildInfoText(
-                              "${_screenInputController.kunde.value.plz} ${_screenInputController.kunde.value.ort}".trim()),
-                        if (_screenInputController.kunde.value.telefon.isNotEmpty)
+                              "${_screenInputController.kunde.value.plz} ${_screenInputController.kunde.value.ort}"
+                                  .trim()),
+                        if (_screenInputController
+                            .kunde.value.telefon.isNotEmpty)
                           _buildInfoText(
                               "Tel: ${_screenInputController.kunde.value.telefon}"),
                         if (_screenInputController.kunde.value.email.isNotEmpty)
@@ -287,13 +337,16 @@ class _ReceiptContentState extends State<ReceiptContent> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        if (_screenInputController.monteur.value.vollerName.isNotEmpty)
+                        if (_screenInputController
+                            .monteur.value.vollerName.isNotEmpty)
                           _buildInfoText(
                               _screenInputController.monteur.value.vollerName),
-                        if (_screenInputController.monteur.value.telefon.isNotEmpty)
+                        if (_screenInputController
+                            .monteur.value.telefon.isNotEmpty)
                           _buildInfoText(
                               "Tel: ${_screenInputController.monteur.value.telefon}"),
-                        if (_screenInputController.monteur.value.email.isNotEmpty)
+                        if (_screenInputController
+                            .monteur.value.email.isNotEmpty)
                           _buildInfoText(
                               "E-Mail: ${_screenInputController.monteur.value.email}"),
                       ],

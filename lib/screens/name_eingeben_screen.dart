@@ -66,51 +66,55 @@ class _NameEingebenScreenState extends State<NameEingebenScreen> {
                 controller.updateMonteurControllers();
               });
               return _sectionHeader(
-              title: "Monteur Informationen",
-              onSearch: () => _selectMonteur(context),
-              showSave: controller.canSaveMonteur.value,
-              onSave: () async {
-                // Aktualisiere monteur.value ZUERST mit aktuellen Controller-Werten
-                final vorname = controller.monteurVornameController.text.trim();
-                final nachname = controller.monteurNachnameController.text.trim();
-                final telefon = controller.monteurTeleController.text.trim();
-                final email = controller.monteurEmailController.text.trim();
-                
-                // Validierung
-                if (vorname.isEmpty) {
-                  _showSnackBar("Vorname ist erforderlich", error: true);
-                  return;
-                }
-                if (nachname.isEmpty) {
-                  _showSnackBar("Nachname ist erforderlich", error: true);
-                  return;
-                }
-                if (telefon.isEmpty) {
-                  _showSnackBar("Telefon ist erforderlich", error: true);
-                  return;
-                }
-                
-                // Aktualisiere monteur.value vor der Prüfung
-                controller.monteur.value = Monteur(
-                  id: controller.monteur.value.id,
-                  vorname: vorname,
-                  nachname: nachname,
-                  email: email,
-                  telefon: telefon,
-                );
-                
-                // Speichern
-                final success = await controller.addMonteurToDatabase();
-                if (success) {
-                  _showSnackBar("Monteur gespeichert!");
-                  // Einstellungen speichern um last_monteur_id zu aktualisieren
-                  await controller.saveEinstellungen();
-                } else {
-                  // Duplikat gefunden, Daten wurden bereits geladen
-                  _showSnackBar("Ein identischer Monteur existiert bereits. Daten wurden geladen.", error: false);
-                }
-              },
-            );
+                title: "Monteur Informationen",
+                onSearch: () => _selectMonteur(context),
+                showSave: controller.canSaveMonteur.value,
+                onSave: () async {
+                  // Aktualisiere monteur.value ZUERST mit aktuellen Controller-Werten
+                  final vorname =
+                      controller.monteurVornameController.text.trim();
+                  final nachname =
+                      controller.monteurNachnameController.text.trim();
+                  final telefon = controller.monteurTeleController.text.trim();
+                  final email = controller.monteurEmailController.text.trim();
+
+                  // Validierung
+                  if (vorname.isEmpty) {
+                    _showSnackBar("Vorname ist erforderlich", error: true);
+                    return;
+                  }
+                  if (nachname.isEmpty) {
+                    _showSnackBar("Nachname ist erforderlich", error: true);
+                    return;
+                  }
+                  if (telefon.isEmpty) {
+                    _showSnackBar("Telefon ist erforderlich", error: true);
+                    return;
+                  }
+
+                  // Aktualisiere monteur.value vor der Prüfung
+                  controller.monteur.value = Monteur(
+                    id: controller.monteur.value.id,
+                    vorname: vorname,
+                    nachname: nachname,
+                    email: email,
+                    telefon: telefon,
+                  );
+
+                  // Speichern
+                  final success = await controller.addMonteurToDatabase();
+                  if (success) {
+                    _showSnackBar("Monteur gespeichert!");
+                    // Einstellungen speichern um last_monteur_id zu aktualisieren
+                    await controller.saveEinstellungen();
+                  } else {
+                    // Duplikat gefunden, Daten wurden bereits geladen
+                    _showSnackBar(
+                        "Ein identischer Monteur existiert bereits. Daten wurden geladen.",
+                        error: false);
+                  }
+                },
+              );
             }),
             SizedBox(height: 20.h),
 
@@ -158,59 +162,61 @@ class _NameEingebenScreenState extends State<NameEingebenScreen> {
                 controller.updateKundeControllers();
               });
               return _sectionHeader(
-              title: "Kunden Informationen",
-              onSearch: () => _selectKunde(context),
-              showSave: controller.canSaveKunde.value,
-              onSave: () async {
-                // Aktualisiere kunde.value ZUERST mit aktuellen Controller-Werten
-                final name = controller.kundeNameController.text.trim();
-                final strasse = controller.kundeStrasseController.text.trim();
-                final plz = controller.kundePlzController.text.trim();
-                final ort = controller.kundeOrtController.text.trim();
-                final telefon = controller.kundeTeleController.text.trim();
-                final email = controller.kundeEmailController.text.trim();
-                
-                // Validierung
-                if (name.isEmpty) {
-                  _showSnackBar("Name ist erforderlich", error: true);
-                  return;
-                }
-                if (strasse.isEmpty) {
-                  _showSnackBar("Straße ist erforderlich", error: true);
-                  return;
-                }
-                if (plz.isEmpty) {
-                  _showSnackBar("PLZ ist erforderlich", error: true);
-                  return;
-                }
-                if (ort.isEmpty) {
-                  _showSnackBar("Ort ist erforderlich", error: true);
-                  return;
-                }
-                
-                // Aktualisiere kunde.value vor der Prüfung
-                controller.kunde.value = Kunde(
-                  id: controller.kunde.value.id,
-                  name: name,
-                  strasse: strasse,
-                  plz: plz,
-                  ort: ort,
-                  telefon: telefon,
-                  email: email,
-                );
-                
-                // Speichern
-                final success = await controller.addKundeToDatabase();
-                if (success) {
-                  _showSnackBar("Kunde gespeichert!");
-                  // Einstellungen speichern um last_kunde_id zu aktualisieren
-                  await controller.saveEinstellungen();
-                } else {
-                  // Duplikat gefunden, Daten wurden bereits geladen
-                  _showSnackBar("Ein identischer Kunde existiert bereits. Daten wurden geladen.", error: false);
-                }
-              },
-            );
+                title: "Kunden Informationen",
+                onSearch: () => _selectKunde(context),
+                showSave: controller.canSaveKunde.value,
+                onSave: () async {
+                  // Aktualisiere kunde.value ZUERST mit aktuellen Controller-Werten
+                  final name = controller.kundeNameController.text.trim();
+                  final strasse = controller.kundeStrasseController.text.trim();
+                  final plz = controller.kundePlzController.text.trim();
+                  final ort = controller.kundeOrtController.text.trim();
+                  final telefon = controller.kundeTeleController.text.trim();
+                  final email = controller.kundeEmailController.text.trim();
+
+                  // Validierung
+                  if (name.isEmpty) {
+                    _showSnackBar("Name ist erforderlich", error: true);
+                    return;
+                  }
+                  if (strasse.isEmpty) {
+                    _showSnackBar("Straße ist erforderlich", error: true);
+                    return;
+                  }
+                  if (plz.isEmpty) {
+                    _showSnackBar("PLZ ist erforderlich", error: true);
+                    return;
+                  }
+                  if (ort.isEmpty) {
+                    _showSnackBar("Ort ist erforderlich", error: true);
+                    return;
+                  }
+
+                  // Aktualisiere kunde.value vor der Prüfung
+                  controller.kunde.value = Kunde(
+                    id: controller.kunde.value.id,
+                    name: name,
+                    strasse: strasse,
+                    plz: plz,
+                    ort: ort,
+                    telefon: telefon,
+                    email: email,
+                  );
+
+                  // Speichern
+                  final success = await controller.addKundeToDatabase();
+                  if (success) {
+                    _showSnackBar("Kunde gespeichert!");
+                    // Einstellungen speichern um last_kunde_id zu aktualisieren
+                    await controller.saveEinstellungen();
+                  } else {
+                    // Duplikat gefunden, Daten wurden bereits geladen
+                    _showSnackBar(
+                        "Ein identischer Kunde existiert bereits. Daten wurden geladen.",
+                        error: false);
+                  }
+                },
+              );
             }),
             SizedBox(height: 20.h),
 
@@ -233,6 +239,7 @@ class _NameEingebenScreenState extends State<NameEingebenScreen> {
             Row(
               children: [
                 Expanded(
+                  flex: 2,
                   child: customTextField(
                     ctrl: controller.kundePlzController,
                     label: "PLZ",
@@ -282,32 +289,41 @@ class _NameEingebenScreenState extends State<NameEingebenScreen> {
               child: ElevatedButton(
                 onPressed: () {
                   // Aktualisiere reactive objects ZUERST mit Controller-Werten
-                  final monteurVorname = controller.monteurVornameController.text.trim();
-                  final monteurNachname = controller.monteurNachnameController.text.trim();
-                  final monteurTele = controller.monteurTeleController.text.trim();
-                  final monteurEmail = controller.monteurEmailController.text.trim();
-                  
+                  final monteurVorname =
+                      controller.monteurVornameController.text.trim();
+                  final monteurNachname =
+                      controller.monteurNachnameController.text.trim();
+                  final monteurTele =
+                      controller.monteurTeleController.text.trim();
+                  final monteurEmail =
+                      controller.monteurEmailController.text.trim();
+
                   final kundeName = controller.kundeNameController.text.trim();
-                  final kundeStrasse = controller.kundeStrasseController.text.trim();
+                  final kundeStrasse =
+                      controller.kundeStrasseController.text.trim();
                   final kundePlz = controller.kundePlzController.text.trim();
                   final kundeOrt = controller.kundeOrtController.text.trim();
                   final kundeTele = controller.kundeTeleController.text.trim();
-                  final kundeEmail = controller.kundeEmailController.text.trim();
-                  
+                  final kundeEmail =
+                      controller.kundeEmailController.text.trim();
+
                   // Validierung für Monteur - prüfe Controller-Werte
                   if (monteurVorname.isEmpty) {
-                    _showSnackBar("Monteur Vorname ist erforderlich", error: true);
+                    _showSnackBar("Monteur Vorname ist erforderlich",
+                        error: true);
                     return;
                   }
                   if (monteurNachname.isEmpty) {
-                    _showSnackBar("Monteur Nachname ist erforderlich", error: true);
+                    _showSnackBar("Monteur Nachname ist erforderlich",
+                        error: true);
                     return;
                   }
                   if (monteurTele.isEmpty) {
-                    _showSnackBar("Monteur Telefon ist erforderlich", error: true);
+                    _showSnackBar("Monteur Telefon ist erforderlich",
+                        error: true);
                     return;
                   }
-                  
+
                   // Validierung für Kunde - prüfe Controller-Werte
                   if (kundeName.isEmpty) {
                     _showSnackBar("Kundenname ist erforderlich", error: true);
@@ -325,7 +341,7 @@ class _NameEingebenScreenState extends State<NameEingebenScreen> {
                     _showSnackBar("Kunde Ort ist erforderlich", error: true);
                     return;
                   }
-                  
+
                   // Werte in reactive objects aktualisieren
                   controller.monteur.value = Monteur(
                     id: controller.monteur.value.id,
@@ -334,7 +350,7 @@ class _NameEingebenScreenState extends State<NameEingebenScreen> {
                     email: monteurEmail,
                     telefon: monteurTele,
                   );
-                  
+
                   controller.kunde.value = Kunde(
                     id: controller.kunde.value.id,
                     name: kundeName,
@@ -344,10 +360,10 @@ class _NameEingebenScreenState extends State<NameEingebenScreen> {
                     telefon: kundeTele,
                     email: kundeEmail,
                   );
-                  
+
                   // Einstellungen speichern um last_monteur_id und last_kunde_id zu aktualisieren
                   controller.saveEinstellungen();
-                  
+
                   Get.to(() => const ScreenInput());
                 },
                 style: ElevatedButton.styleFrom(
@@ -500,7 +516,7 @@ class _NameEingebenScreenState extends State<NameEingebenScreen> {
   void _selectMonteur(BuildContext context) async {
     // Daten neu laden bevor Dialog geöffnet wird
     await controller.reloadAllData();
-    
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -560,7 +576,7 @@ class _NameEingebenScreenState extends State<NameEingebenScreen> {
   void _selectKunde(BuildContext context) async {
     // Daten neu laden bevor Dialog geöffnet wird
     await controller.reloadAllData();
-    
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,

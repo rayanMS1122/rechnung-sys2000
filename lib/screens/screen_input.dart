@@ -10,10 +10,9 @@ import 'package:reciepts/constants.dart';
 import 'package:reciepts/controller/screen_input_controller.dart';
 import 'package:reciepts/controller/unterschrift_controller.dart';
 import 'package:reciepts/models/reciept_model.dart';
+import 'package:reciepts/screens/bank_qr_generator_screen.dart';
 import 'package:reciepts/screens/screen_reciept.dart';
-import 'package:reciepts/screens/screen_reciept_new.dart';
 import 'package:reciepts/screens/settings_screen.dart';
-import 'package:signature/signature.dart';
 
 class ScreenInput extends StatefulWidget {
   const ScreenInput({super.key});
@@ -27,7 +26,7 @@ class _ScreenInputState extends State<ScreenInput> {
   final ScreenInputController _controller = Get.find();
   final UnterschriftController _unterschriftController = Get.find();
   final ScrollController _scrollController = ScrollController();
-
+  final BankQrGeneratorScreen bankQr = BankQrGeneratorScreen();
   // Deutsche Zahlenformatierung (Komma statt Punkt, immer 2 Dezimalstellen)
   final NumberFormat _numberFormat = NumberFormat('#,##0.00', 'de_DE');
 
@@ -43,7 +42,7 @@ class _ScreenInputState extends State<ScreenInput> {
     super.dispose();
   }
 
-  void _submitForm() {
+  Future<void> _submitForm() async {
     // Validierung: Prüfe ob mindestens eine Position vorhanden ist
     if (_controller.rechnungTextFielde.isEmpty) {
       Get.snackbar(
@@ -53,7 +52,6 @@ class _ScreenInputState extends State<ScreenInput> {
         backgroundColor: Colors.redAccent,
         colorText: Colors.white,
       );
-      return;
     }
 
     // Validierung: Prüfe alle Positionen
@@ -88,7 +86,7 @@ class _ScreenInputState extends State<ScreenInput> {
         context,
         MaterialPageRoute(
           builder: (context) =>
-              ReceiptScreenNew(receiptData: _controller.rechnungTextFielde),
+              ReceiptScreen(receiptData: _controller.rechnungTextFielde),
         ),
       );
     }

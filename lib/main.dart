@@ -12,6 +12,7 @@ import 'package:reciepts/controller/firma_controller.dart';
 import 'package:reciepts/controller/kunde_controller.dart';
 import 'package:reciepts/controller/monteur_controller.dart';
 import 'package:reciepts/controller/baustelle_controller.dart';
+import 'package:reciepts/database/database_helper.dart';
 import 'package:reciepts/services/einstellungen_service.dart';
 import 'package:reciepts/services/bilder_service.dart';
 import 'package:reciepts/services/rechnung_service.dart';
@@ -24,18 +25,18 @@ void main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitUp,
   ]);
-  
+
   // Initialize Services first
   Get.put(EinstellungenService(), permanent: true);
   Get.put(RechnungService(), permanent: true);
   Get.put(BilderService(), permanent: true);
-  
+
   // Initialize Controllers
   Get.put(FirmaController(), permanent: true);
   Get.put(KundeController(), permanent: true);
   Get.put(MonteurController(), permanent: true);
   Get.put(BaustelleController(), permanent: true);
-  
+
   // Initialize main controllers
   Get.put(UnterschriftController());
   Get.put(ScreenInputController());

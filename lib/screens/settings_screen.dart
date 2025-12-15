@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:reciepts/constants.dart'; // WICHTIG: AppColors wird hier verwendet
 import 'package:reciepts/controller/screen_input_controller.dart';
 import 'package:reciepts/controller/unterschrift_controller.dart';
+import 'package:reciepts/screens/bank_qr_generator_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   final ScreenInputController _controller = Get.find();
@@ -183,6 +184,40 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   ),
 
+                  SizedBox(height: 24.h),
+                  Card(
+                    color: AppColors.surface,
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16.r)),
+                    child: Padding(
+                      padding: EdgeInsets.all(20.w),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () {
+                                    Get.to(BankQrGeneratorScreen());
+                                  },
+                                  icon: Icon(Icons.navigate_next, size: 28.sp),
+                                  label: Text("Bank daten ein geben",
+                                      style: TextStyle(fontSize: 16.sp)),
+                                  style: OutlinedButton.styleFrom(
+                                    padding:
+                                        EdgeInsets.symmetric(vertical: 14.h),
+                                    side: BorderSide(color: AppColors.primary),
+                                    foregroundColor: AppColors.primary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                   SizedBox(height: 24.h),
 
                   // Logo Card

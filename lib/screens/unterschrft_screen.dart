@@ -27,30 +27,30 @@ class _UnterschrftScreenState extends State<UnterschrftScreen> {
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
-    
+
     // Periodischer Timer, der prüft, ob der User aufgehört hat zu zeichnen
     _checkTimer = Timer.periodic(const Duration(milliseconds: 300), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
       }
-      
+
       final signatureController = widget.title == "Kunde"
           ? _controller.kundeSignatureController
           : _controller.monteurSignatureController;
-      
+
       // Aktuelle Anzahl der Punkte prüfen
       final currentPointCount = signatureController.points.length;
-      
+
       // Wenn sich die Punkte geändert haben, hat der User gezeichnet
       if (currentPointCount > _lastPointCount) {
         _hasDrawn = true;
         _lastDrawingTime = DateTime.now();
         _lastPointCount = currentPointCount;
       }
-      
+
       // Wenn der User gezeichnet hat und seit 1 Sekunde nicht mehr gezeichnet hat
-      if (_hasDrawn && 
+      if (_hasDrawn &&
           _lastDrawingTime != null &&
           currentPointCount > 0 &&
           DateTime.now().difference(_lastDrawingTime!).inMilliseconds >= 1000) {
@@ -62,7 +62,7 @@ class _UnterschrftScreenState extends State<UnterschrftScreen> {
 
   Future<void> _saveAndClose() async {
     if (!mounted) return;
-    
+
     try {
       if (widget.title == "Kunde") {
         await _controller.saveKundeBytesToImage(context);
@@ -80,7 +80,7 @@ class _UnterschrftScreenState extends State<UnterschrftScreen> {
   @override
   void dispose() {
     _checkTimer?.cancel();
-    
+
     // Zurück auf Hochformat
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
@@ -94,13 +94,55 @@ class _UnterschrftScreenState extends State<UnterschrftScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        color: Colors.white,
-        child: widget.title == "Kunde"
-            ? _controller.kundeSignatureCanvas
-            : _controller.monteurSignatureCanvas,
+      body: SafeArea(
+        // Wichtig im Landscape, wegen Notch/Statusbar
+        child: Stack(
+          children: [
+            // Haupt-Zeichenbereich – füllt fast alles aus
+            Padding(
+              padding: const EdgeInsets.all(16.0), // Abstand zum Rand
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey, width: 2),
+                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.white,
+                ),
+                child: widget.title == "Kunde"
+                    ? _controller.kundeSignatureCanvas
+                    : _controller.monteurSignatureCanvas,
+              ),
+            ),
+
+            Positioned(
+              top: 20,
+              left: 20,
+              child: Text(
+                widget.title + " Unterschrift",
+                style: TextStyle(fontSize: 24, color: Colors.black54),
+              ),
+            ),
+
+            // Optional: "Löschen"-Button oben rechts
+            Positioned(
+              top: 16,
+              right: 16,
+              child: IconButton(
+                icon: const Icon(Icons.clear, size: 32),
+                onPressed: () {
+                  if (widget.title == "Kunde") {
+                    _controller.kundeSignatureController.clear();
+                  } else {
+                    _controller.monteurSignatureController.clear();
+                  }
+                  setState(() {
+                    _hasDrawn = false;
+                    _lastPointCount = 0;
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
