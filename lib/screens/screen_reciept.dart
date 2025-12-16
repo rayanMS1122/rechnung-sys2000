@@ -992,11 +992,14 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
             ),
             Expanded(
               child: Center(
-                child: Text("Kassenbon Vorschau (Neues Design)",
-                    style: TextStyle(
-                        fontSize: 20.sp,
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold)),
+                child: Obx(
+                  () => Text(
+                      "${_screenInputController.dokumentTitel.value} Vorschau",
+                      style: TextStyle(
+                          fontSize: 20.sp,
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold)),
+                ),
               ),
             ),
             GestureDetector(
