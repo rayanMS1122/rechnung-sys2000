@@ -5,6 +5,8 @@ import 'package:reciepts/controller/firma_controller.dart';
 import 'package:reciepts/controller/kunde_controller.dart';
 import 'package:reciepts/controller/monteur_controller.dart';
 import 'package:reciepts/controller/baustelle_controller.dart';
+import 'package:reciepts/screens/bank_qr_generator_screen.dart';
+import 'package:reciepts/screens/settings_screen.dart';
 import 'package:reciepts/services/einstellungen_service.dart';
 import 'package:reciepts/services/bilder_service.dart';
 import 'package:reciepts/services/rechnung_service.dart';
@@ -98,18 +100,88 @@ class ScreenInputController extends GetxController {
   // Rechnung
   RxList<ReceiptData> get rechnungTextFielde =>
       rechnungService.rechnungTextFielde;
+  RxString dokumentTitel = "RECHNUNG".obs;
+
+  Future<void> _loadDokumentTitel() async {
+    final settings = await DatabaseHelper.instance.getEinstellungen();
+    if (settings != null && settings['dokument_titel'] != null) {
+      dokumentTitel.value = settings['dokument_titel'].toString().trim();
+    }
+    // Falls leer → Standard setzen
+    if (dokumentTitel.value.isEmpty) {
+      dokumentTitel.value = "RECHNUNG";
+    }
+  }
+
+  Future<void> saveDokumentTitel(String newTitle) async {
+    String cleaned = newTitle.trim().toUpperCase();
+    if (cleaned.isEmpty) cleaned = "RECHNUNG";
+
+    dokumentTitel.value = cleaned;
+
+    // In DB speichern
+    await DatabaseHelper.instance.saveEinstellungen({
+      'dokument_titel': cleaned,
+    });
+  }
+
+// Für das TextField – wird automatisch mit dem RxString synchronisiert
+  late TextEditingController dokumentTitelEditController;
+
+  void initDokumentTitelController() {
+    dokumentTitelEditController =
+        TextEditingController(text: dokumentTitel.value);
+
+    // Synchronisation: Wenn im TextField geändert wird → RxString aktualisieren
+    dokumentTitelEditController.addListener(() {
+      String value = dokumentTitelEditController.text.trim().toUpperCase();
+      if (value.isEmpty) value = "RECHNUNG";
+      dokumentTitel.value = value;
+    });
+
+    // Optional: Wenn RxString von außen geändert wird → TextField aktualisieren
+    ever(dokumentTitel, (_) {
+      final text = dokumentTitel.value;
+      if (dokumentTitelEditController.text != text) {
+        dokumentTitelEditController.text = text;
+      }
+    });
+  }
+
+  final TextEditingController nameBankQrController = TextEditingController();
+  final TextEditingController ibanBankQrController =
+      TextEditingController(text: "DE89 3704 0044 0532 0130 00");
+  final TextEditingController bicBankQrController = TextEditingController();
+  final TextEditingController purposeBankQrController = TextEditingController();
+  Future<void> loadBankDataIntoControllers() async {
+    final bankData = await _dbHelper.getBankData();
+    if (bankData != null) {
+      nameBankQrController.text = bankData['name'] ?? '';
+      ibanBankQrController.text =
+          bankData['iban'] ?? 'DE89 3704 0044 0532 0130 00'; // Fallback
+      bicBankQrController.text = bankData['bic'] ?? '';
+      purposeBankQrController.text = bankData['purpose'] ?? '';
+
+      if (bankData['qrData']?.isNotEmpty == true) {
+        qrData.value = bankData['qrData'];
+      }
+    }
+  }
 
   @override
   void onInit() async {
     super.onInit();
-
-    // Initialize Baustelle with Kunde reference
+    initDokumentTitelController();
+    _loadDokumentTitel(); // Lädt aus DB beim Start
     baustelleController.initialize(kundeController.kunde);
 
     await _loadAllDataFromDatabase();
     await _loadEinstellungenFromDB();
-    ever(rechnungTextFielde, (_) => _autoUpdateQrCodeIfPossible());
 
+    // === HIER: Bankdaten in die Felder laden ===
+    await loadBankDataIntoControllers();
+
+    ever(rechnungTextFielde, (_) => _autoUpdateQrCodeIfPossible());
     _setupAutoSaveListeners();
   }
 
@@ -140,6 +212,75 @@ class ScreenInputController extends GetxController {
     }
   }
 
+// === VERBESSERTE generateQR FUNKTION ===
+  Future<void> generateQR() async {
+    final name = nameBankQrController.text.trim();
+    final iban = ibanBankQrController.text.trim().replaceAll(' ', '');
+    final bic = bicBankQrController.text.trim();
+    final purpose = purposeBankQrController.text.trim();
+
+    // Fall 1: Bankdaten fehlen → User in Einstellungen schicken
+    if (name.isEmpty || iban.isEmpty) {
+      Get.snackbar(
+        'Bankdaten fehlen',
+        'Bitte gib zuerst deinen Namen und IBAN in den Einstellungen ein. Unter Bank daten ein geben.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.orange.withOpacity(0.9),
+        colorText: Colors.white,
+        duration: const Duration(seconds: 5),
+        mainButton: TextButton(
+          onPressed: () {
+            Get.back(); // Snackbar schließen
+
+            // === HIER ANPASSEN JE NACH DEINER NAVIGATION ===
+            // Variante A: Wenn du BottomNavigationBar oder TabBar hast
+            // Get.offAllNamed('/home'); // oder welchen Screen auch immer
+            // dann z.B.:
+            // Get.find<BottomNavController>().changeTabIndex(3); // z.B. Index 3 = Einstellungen
+
+            // Variante B: Direkter Push zum Einstellungen-Screen
+            Get.to(BankQrGeneratorScreen());
+
+            // Variante C: Wenn du GetMaterialApp mit indexedStack oder ähnlichem nutzt
+            // Get.offNamed('/einstellungen');
+          },
+          child: const Text('Zu Einstellungen',
+              style: TextStyle(color: Colors.white)),
+        ),
+      );
+      return;
+    }
+
+    // Fall 2: IBAN hat falsches Format
+    if (!RegExp(r'^[A-Z]{2}[0-9]{2}[A-Z0-9]{1,30}$').hasMatch(iban)) {
+      Get.snackbar(
+        'Ungültige IBAN',
+        'Bitte überprüfe das Format deiner IBAN (z. B. DE89 3704 0044 0532 0130 00)',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withOpacity(0.9),
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    // Fall 4: Alles OK → QR-Code generieren
+    await generateQrCodeWithCurrentTotal(
+      name: name,
+      iban: iban,
+      bic: bic,
+      purpose: purpose,
+    );
+
+    Get.snackbar(
+      'Erfolg',
+      'QR-Rechnungscode wurde erfolgreich generiert!',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.green.withOpacity(0.9),
+      colorText: Colors.white,
+      duration: const Duration(seconds: 3),
+    );
+  }
+
   Future<void> generateQrCodeWithCurrentTotal({
     required String name,
     required String iban,
@@ -147,12 +288,6 @@ class ScreenInputController extends GetxController {
     String purpose = '',
   }) async {
     final double amount = currentReceiptTotal;
-    if (amount <= 0) {
-      Get.snackbar(
-          "Hinweis", "Rechnungsbetrag ist 0 – QR-Code nicht generiert");
-      qrData.value = '';
-      return;
-    }
 
     final String amountStr = amount.toStringAsFixed(2); // 600.00
 
@@ -160,13 +295,12 @@ class ScreenInputController extends GetxController {
         '002\n'
         '1\n'
         'SCT\n'
-        '${bic.isNotEmpty ? '$bic\n' : '\n'}'
+        '${bic.isNotEmpty ? '$bic\n' : ''}' // ← Kein \n bei leerer BIC!
         '$name\n'
         '$iban\n'
         'EUR$amountStr\n'
-        '\n'
+        '\n' // Leere Zeile für structured reference (optional)
         '$purpose\n';
-
     // In DB speichern
     await saveBankDataToDB(
       name: name,
@@ -222,11 +356,35 @@ class ScreenInputController extends GetxController {
     baustelleStrasseController.addListener(saveEinstellungen);
     baustellePlzController.addListener(saveEinstellungen);
     baustelleOrtController.addListener(saveEinstellungen);
-
+// === Bankdaten automatisch speichern ===
+    nameBankQrController.addListener(_saveBankDataIfPossible);
+    ibanBankQrController.addListener(_saveBankDataIfPossible);
+    bicBankQrController.addListener(_saveBankDataIfPossible);
+    purposeBankQrController.addListener(_saveBankDataIfPossible);
     // Switch für Bearbeitung
     ever(enableEditing, (bool value) async {
       await saveEinstellungen();
     });
+  }
+
+  void _saveBankDataIfPossible() async {
+    // Debounce: nicht bei jeder Taste sofort speichern
+    debounce(
+      'saveBankData'.obs,
+      (_) async {
+        final name = nameBankQrController.text.trim();
+        final iban = ibanBankQrController.text.trim();
+        if (name.isNotEmpty && iban.isNotEmpty) {
+          await generateQrCodeWithCurrentTotal(
+            name: name,
+            iban: iban,
+            bic: bicBankQrController.text.trim(),
+            purpose: purposeBankQrController.text.trim(),
+          );
+        }
+      },
+      time: const Duration(milliseconds: 800),
+    );
   }
 
   Future<void> saveEinstellungen() async {

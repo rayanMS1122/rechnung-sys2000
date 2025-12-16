@@ -82,11 +82,14 @@ class _ScreenInputState extends State<ScreenInput> {
     }
 
     if (_formKey.currentState!.validate()) {
+      await _controller.generateQR();
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) =>
-              ReceiptScreen(receiptData: _controller.rechnungTextFielde),
+          builder: (context) => ReceiptScreen(
+            receiptData: _controller.rechnungTextFielde,
+            dokumentTitel: _controller.dokumentTitel.value,
+          ),
         ),
       );
     }

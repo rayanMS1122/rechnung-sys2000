@@ -293,6 +293,70 @@ class SettingsScreen extends StatelessWidget {
                       ),
                     ),
                   ),
+                  SizedBox(height: 40.h),
+                  Card(
+                    color: AppColors.surface,
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16.r)),
+                    child: Padding(
+                      padding: EdgeInsets.all(20.w),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Dokumententitel (oben rechts im PDF)",
+                            style: TextStyle(
+                                fontSize: 18.sp,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary),
+                          ),
+                          SizedBox(height: 12.h),
+                          TextField(
+                            textCapitalization: TextCapitalization.characters,
+                            decoration: InputDecoration(
+                              hintText: "z. B. RECHNUNG",
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12.r)),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12.r),
+                                borderSide: BorderSide(
+                                    color: AppColors.primary, width: 2),
+                              ),
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 16.w, vertical: 14.h),
+                            ),
+                            // Initialwert aus Controller
+                            controller: TextEditingController(
+                                text: Get.find<ScreenInputController>()
+                                    .dokumentTitel
+                                    .value)
+                              ..selection = TextSelection.fromPosition(
+                                TextPosition(
+                                    offset: Get.find<ScreenInputController>()
+                                        .dokumentTitel
+                                        .value
+                                        .length),
+                              ),
+                            onChanged: (value) {
+                              Get.find<ScreenInputController>()
+                                  .saveDokumentTitel(value);
+                            },
+                            onSubmitted: (value) {
+                              Get.find<ScreenInputController>()
+                                  .saveDokumentTitel(value);
+                            },
+                          ),
+                          SizedBox(height: 12.h),
+                          Text(
+                            "Wird oben rechts angezeigt. Leer = Standard 'RECHNUNG'",
+                            style: TextStyle(
+                                fontSize: 13.sp, color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
 
                   SizedBox(height: 40.h),
 

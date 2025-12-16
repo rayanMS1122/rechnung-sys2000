@@ -91,7 +91,16 @@ class _ReceiptContentState extends State<ReceiptContent> {
             ),
           ),
           const SizedBox(height: 30),
-
+          Center(
+            child: Obx(
+              () => Text(_screenInputController.dokumentTitel.value,
+                  style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2)),
+            ),
+          ),
+          const SizedBox(height: 30),
           // Firma Section
           _buildSectionTitle("Firma"),
           const SizedBox(height: 10),

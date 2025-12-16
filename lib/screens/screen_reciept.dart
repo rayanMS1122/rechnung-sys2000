@@ -1,13 +1,17 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:qr/qr.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:reciepts/constants.dart';
 import 'package:reciepts/controller/screen_input_controller.dart';
 import 'package:reciepts/controller/unterschrift_controller.dart';
@@ -19,7 +23,10 @@ import '../models/reciept_model.dart';
 
 class ReceiptScreen extends StatefulWidget {
   final List<ReceiptData> receiptData;
-  const ReceiptScreen({super.key, required this.receiptData});
+  final String dokumentTitel;
+  // final String dokumentTitel = "RECHNUNG";
+  const ReceiptScreen(
+      {super.key, required this.receiptData, required this.dokumentTitel});
 
   @override
   State<ReceiptScreen> createState() => _ReceiptScreenState();
@@ -30,41 +37,71 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
   final ScreenInputController _screenInputController = Get.find();
   bool _isProcessing = false;
 
-  // Deutsche Zahlenformatierung (Komma statt Punkt, immer 2 Dezimalstellen)
+  // Deutsche Zahlenformatierung
   final NumberFormat _numberFormat = NumberFormat('#,##0.00', 'de_DE');
+  String _formatNumber(double value) => _numberFormat.format(value);
+// Entferne diese Imports, falls du sie nur für SVG brauchst:
+// import 'dart:ui' as ui;
+// import 'package:flutter_svg/flutter_svg.dart';
 
-  // Hilfsfunktion für deutsche Zahlenformatierung
-  String _formatNumber(double value) {
-    return _numberFormat.format(value);
+// Füge diesen Import hinzu (falls noch nicht vorhanden):
+
+// Ersetze deine komplette _generateQrImage()-Methode durch diese:
+  Future<pw.MemoryImage?> _generateQrImage() async {
+    final qrData = _screenInputController.qrData.value;
+    if (qrData.isEmpty) {
+      debugPrint("Kein QR-Data vorhanden – QR-Code wird übersprungen");
+      return null;
+    }
+
+    try {
+      // Verwende QrPainter aus qr_flutter, um ein Bild zu malen
+      final painter = QrPainter(
+        data: qrData,
+        version: QrVersions.auto,
+        // errorCorrectionLevel: QrErrorCorrectionLevel.L,
+        color: const Color(0xFF000000),
+        emptyColor: const Color(0xFFFFFFFF),
+        gapless: true,
+      );
+
+      // Erstelle ein Bild mit gewünschter Größe
+      final picData =
+          await painter.toImageData(300, format: ui.ImageByteFormat.png);
+
+      if (picData != null) {
+        return pw.MemoryImage(picData.buffer.asUint8List());
+      }
+    } catch (e) {
+      debugPrint("Fehler beim Generieren des QR-Codes: $e");
+    }
+    return null;
   }
 
   Future<void> _generateAndSharePdf() async {
     if (_isProcessing) return;
 
+    // Validierungen
     final firmaName = _screenInputController.firmaNameController.text.trim();
     if (firmaName.isEmpty) {
       Get.snackbar(
         "Hinweis",
-        "Bitte geben Sie die Firmendaten ein (mindestens Firmenname).\nGehen Sie zu den Einstellungen, um die Daten einzugeben.",
+        "Bitte geben Sie die Firmendaten ein (mindestens Firmenname).\nGehen Sie zu den Einstellungen.",
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.orange.withOpacity(0.9),
         colorText: Colors.white,
         borderRadius: 15,
         margin: const EdgeInsets.all(16),
         duration: const Duration(seconds: 5),
-        isDismissible: true,
         mainButton: TextButton(
           onPressed: () {
             Get.back();
             Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => SettingsScreen()),
-            );
+                context, MaterialPageRoute(builder: (_) => SettingsScreen()));
           },
-          child: const Text(
-            "Einstellungen",
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
+          child: const Text("Einstellungen",
+              style:
+                  TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         ),
       );
       return;
@@ -76,63 +113,41 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         _screenInputController.baustellePlzController.text.trim();
     final baustelleOrt =
         _screenInputController.baustelleOrtController.text.trim();
-
     if (baustelleStrasse.isEmpty &&
         baustellePlz.isEmpty &&
         baustelleOrt.isEmpty) {
       Get.snackbar(
         "Hinweis",
-        "Bitte geben Sie die Baustelle-Daten ein (mindestens Straße oder PLZ/Ort).\nGehen Sie zu den Einstellungen, um die Daten einzugeben.",
+        "Bitte geben Sie die Baustelle-Daten ein (mindestens Straße oder PLZ/Ort).",
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.orange.withOpacity(0.9),
         colorText: Colors.white,
         borderRadius: 15,
         margin: const EdgeInsets.all(16),
         duration: const Duration(seconds: 5),
-        isDismissible: true,
         mainButton: TextButton(
           onPressed: () {
             Get.back();
             Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => SettingsScreen()),
-            );
+                context, MaterialPageRoute(builder: (_) => SettingsScreen()));
           },
-          child: const Text(
-            "Einstellungen",
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
+          child: const Text("Einstellungen",
+              style:
+                  TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         ),
       );
       return;
     }
 
-    if (_unterschriftController.kundePngBytes.value == null) {
+    if (_unterschriftController.kundePngBytes.value == null ||
+        _unterschriftController.monteurPngBytes.value == null) {
       Get.snackbar(
         "Hinweis",
-        "Bitte geben Sie die Kunden-Unterschrift ein.",
+        "Bitte geben Sie beide Unterschriften ein (Kunde & Monteur).",
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.orange.withOpacity(0.9),
         colorText: Colors.white,
-        borderRadius: 15,
-        margin: const EdgeInsets.all(16),
         duration: const Duration(seconds: 4),
-        isDismissible: true,
-      );
-      return;
-    }
-
-    if (_unterschriftController.monteurPngBytes.value == null) {
-      Get.snackbar(
-        "Hinweis",
-        "Bitte geben Sie die Monteur-Unterschrift ein.",
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.orange.withOpacity(0.9),
-        colorText: Colors.white,
-        borderRadius: 15,
-        margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 4),
-        isDismissible: true,
       );
       return;
     }
@@ -143,26 +158,33 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       final ocrFont =
           pw.Font.ttf(await rootBundle.load("assets/fonts/cour.ttf"));
 
-      Uint8List? logoBytes;
+      // Logo laden
       pw.MemoryImage? logoImage;
       if (_screenInputController.logo.value.path.isNotEmpty) {
         try {
           final logoPath = _screenInputController.logo.value.path;
+          Uint8List logoBytes;
           if (logoPath.startsWith('assets/')) {
             final byteData = await rootBundle.load(logoPath);
             logoBytes = byteData.buffer.asUint8List();
-            logoImage = pw.MemoryImage(logoBytes);
           } else {
             final file = File(logoPath);
             if (await file.exists()) {
               logoBytes = await file.readAsBytes();
-              logoImage = pw.MemoryImage(logoBytes);
+            } else {
+              logoBytes = Uint8List(0);
             }
           }
+          if (logoBytes.isNotEmpty) {
+            logoImage = pw.MemoryImage(logoBytes);
+          }
         } catch (e) {
-          debugPrint("Fehler beim Laden des Logos: $e");
+          debugPrint("Logo-Fehler: $e");
         }
       }
+
+      // QR-Code generieren
+      final pw.MemoryImage? qrImage = await _generateQrImage();
 
       final pdf = pw.Document();
       const int linesPerPage = 60;
@@ -184,13 +206,13 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
             pageFormat: PdfPageFormat.a4,
             margin: pw.EdgeInsets.all(45),
             build: (pw.Context context) => [
-              // HEADER SECTION
+              // HEADER (nur erste Seite)
               if (pageIndex == 0) ...[
                 pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: pw.MainAxisAlignment.start,
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    // Logo
+                    // Logo links
                     if (logoImage != null)
                       pw.Container(
                         width: 80,
@@ -200,44 +222,70 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                     else
                       pw.SizedBox(width: 80),
 
-                    // Rechnung Title
+                    pw.SizedBox(width: 30), // Abstand zum QR-Block
+
+                    // QR-RECHNUNG mittig (nur wenn vorhanden)
+                    if (qrImage != null)
+                      pw.Expanded(
+                        child: pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.center,
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.SizedBox(width: 20),
+                            pw.Container(
+                              width:
+                                  80, // Etwas kleiner für Header (original 140)
+                              height: 80,
+                              padding: pw.EdgeInsets.all(8),
+                              decoration: pw.BoxDecoration(
+                                border: pw.Border.all(color: PdfColors.grey600),
+                                borderRadius: pw.BorderRadius.circular(6),
+                              ),
+                              child: pw.Image(qrImage, fit: pw.BoxFit.contain),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      pw.Expanded(
+                          child: pw.SizedBox()), // Platzhalter, falls kein QR
+
+                    pw.SizedBox(width: 30), // Abstand zum Titel
+
+                    // Rechnungstitel rechts
                     pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.end,
                       children: [
-                        pw.Text(
-                          "RECHNUNG",
-                          style: pw.TextStyle(
-                            font: ocrFont,
-                            fontSize: 24,
-                            fontWeight: pw.FontWeight.bold,
-                            letterSpacing: 2,
-                          ),
-                        ),
+                        pw.Text(widget.dokumentTitel,
+                            style: pw.TextStyle(
+                                font: ocrFont,
+                                fontSize: 24,
+                                fontWeight: pw.FontWeight.bold,
+                                letterSpacing: 2)),
                         pw.SizedBox(height: 8),
                         pw.Container(
                           padding: pw.EdgeInsets.symmetric(
                               horizontal: 12, vertical: 6),
                           decoration: pw.BoxDecoration(
-                            color: PdfColors.grey300,
-                            borderRadius: pw.BorderRadius.circular(4),
-                          ),
+                              color: PdfColors.grey300,
+                              borderRadius: pw.BorderRadius.circular(4)),
                           child: pw.Text(
-                            DateFormat('dd.MM.yyyy - HH:mm')
-                                .format(DateTime.now()),
-                            style: pw.TextStyle(
-                              font: ocrFont,
-                              fontSize: 10,
-                              fontWeight: pw.FontWeight.bold,
-                            ),
-                          ),
+                              DateFormat('dd.MM.yyyy - HH:mm')
+                                  .format(DateTime.now()),
+                              style: pw.TextStyle(
+                                  font: ocrFont,
+                                  fontSize: 10,
+                                  fontWeight: pw.FontWeight.bold)),
                         ),
                       ],
                     ),
                   ],
                 ),
-                pw.SizedBox(height: 35),
+                pw.SizedBox(
+                    height:
+                        35), // Abstand zum nächsten Block (Firma/Baustelle)                pw.SizedBox(height: 35),
 
-                // FIRMA & BAUSTELLE INFO
+                // FIRMA & BAUSTELLE
                 pw.Container(
                   decoration: pw.BoxDecoration(
                     border: pw.Border.all(color: PdfColors.grey400, width: 1),
@@ -247,7 +295,6 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                   child: pw.Row(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      // Firma
                       pw.Expanded(
                         child: pw.Column(
                           crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -256,41 +303,34 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                               padding: pw.EdgeInsets.only(bottom: 8),
                               decoration: pw.BoxDecoration(
                                 border: pw.Border(
-                                  bottom: pw.BorderSide(
-                                    color: PdfColors.grey700,
-                                    width: 2,
-                                  ),
-                                ),
+                                    bottom: pw.BorderSide(
+                                        color: PdfColors.grey700, width: 2)),
                               ),
-                              child: pw.Text(
-                                "FIRMA",
-                                style: pw.TextStyle(
-                                  font: ocrFont,
-                                  fontSize: 11,
-                                  fontWeight: pw.FontWeight.bold,
-                                  letterSpacing: 1,
-                                ),
-                              ),
+                              child: pw.Text("FIRMA",
+                                  style: pw.TextStyle(
+                                      font: ocrFont,
+                                      fontSize: 11,
+                                      fontWeight: pw.FontWeight.bold,
+                                      letterSpacing: 1)),
                             ),
                             pw.SizedBox(height: 10),
                             if (_screenInputController
                                 .firmaNameController.text.isNotEmpty)
                               pw.Text(
-                                _screenInputController.firmaNameController.text,
-                                style: pw.TextStyle(
-                                  font: ocrFont,
-                                  fontSize: 10,
-                                  fontWeight: pw.FontWeight.bold,
-                                ),
-                              ),
+                                  _screenInputController
+                                      .firmaNameController.text,
+                                  style: pw.TextStyle(
+                                      font: ocrFont,
+                                      fontSize: 10,
+                                      fontWeight: pw.FontWeight.bold)),
                             if (_screenInputController
                                 .firmaStrasseController.text.isNotEmpty) ...[
                               pw.SizedBox(height: 3),
                               pw.Text(
-                                _screenInputController
-                                    .firmaStrasseController.text,
-                                style: pw.TextStyle(font: ocrFont, fontSize: 9),
-                              ),
+                                  _screenInputController
+                                      .firmaStrasseController.text,
+                                  style:
+                                      pw.TextStyle(font: ocrFont, fontSize: 9)),
                             ],
                             if (_screenInputController
                                     .firmaPlzController.text.isNotEmpty ||
@@ -298,59 +338,48 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                                     .firmaOrtController.text.isNotEmpty) ...[
                               pw.SizedBox(height: 3),
                               pw.Text(
-                                "${_screenInputController.firmaPlzController.text} ${_screenInputController.firmaOrtController.text}"
-                                    .trim(),
-                                style: pw.TextStyle(font: ocrFont, fontSize: 9),
-                              ),
+                                  "${_screenInputController.firmaPlzController.text} ${_screenInputController.firmaOrtController.text}"
+                                      .trim(),
+                                  style:
+                                      pw.TextStyle(font: ocrFont, fontSize: 9)),
                             ],
                             if (_screenInputController
                                 .firmaTelefonController.text.isNotEmpty) ...[
                               pw.SizedBox(height: 6),
                               pw.Text(
-                                "Tel: ${_screenInputController.firmaTelefonController.text}",
-                                style: pw.TextStyle(font: ocrFont, fontSize: 9),
-                              ),
+                                  "Tel: ${_screenInputController.firmaTelefonController.text}",
+                                  style:
+                                      pw.TextStyle(font: ocrFont, fontSize: 9)),
                             ],
                             if (_screenInputController
                                 .firmaEmailController.text.isNotEmpty) ...[
                               pw.SizedBox(height: 3),
                               pw.Text(
-                                _screenInputController
-                                    .firmaEmailController.text,
-                                style: pw.TextStyle(
-                                  font: ocrFont,
-                                  fontSize: 9,
-                                  color: PdfColors.blue800,
-                                ),
-                              ),
+                                  _screenInputController
+                                      .firmaEmailController.text,
+                                  style: pw.TextStyle(
+                                      font: ocrFont,
+                                      fontSize: 9,
+                                      color: PdfColors.blue800)),
                             ],
                             if (_screenInputController
                                 .firmaWebsiteController.text.isNotEmpty) ...[
                               pw.SizedBox(height: 3),
                               pw.Text(
-                                _screenInputController
-                                    .firmaWebsiteController.text,
-                                style: pw.TextStyle(
-                                  font: ocrFont,
-                                  fontSize: 9,
-                                  color: PdfColors.blue800,
-                                ),
-                              ),
+                                  _screenInputController
+                                      .firmaWebsiteController.text,
+                                  style: pw.TextStyle(
+                                      font: ocrFont,
+                                      fontSize: 9,
+                                      color: PdfColors.blue800)),
                             ],
                           ],
                         ),
                       ),
                       pw.SizedBox(width: 25),
-
-                      // Vertikale Trennlinie
                       pw.Container(
-                        width: 1,
-                        height: 100,
-                        color: PdfColors.grey400,
-                      ),
+                          width: 1, height: 100, color: PdfColors.grey400),
                       pw.SizedBox(width: 25),
-
-                      // Baustelle
                       pw.Expanded(
                         child: pw.Column(
                           crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -359,44 +388,36 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                               padding: pw.EdgeInsets.only(bottom: 8),
                               decoration: pw.BoxDecoration(
                                 border: pw.Border(
-                                  bottom: pw.BorderSide(
-                                    color: PdfColors.grey700,
-                                    width: 2,
-                                  ),
-                                ),
+                                    bottom: pw.BorderSide(
+                                        color: PdfColors.grey700, width: 2)),
                               ),
-                              child: pw.Text(
-                                "BAUSTELLE",
-                                style: pw.TextStyle(
-                                  font: ocrFont,
-                                  fontSize: 11,
-                                  fontWeight: pw.FontWeight.bold,
-                                  letterSpacing: 1,
-                                ),
-                              ),
+                              child: pw.Text("BAUSTELLE",
+                                  style: pw.TextStyle(
+                                      font: ocrFont,
+                                      fontSize: 11,
+                                      fontWeight: pw.FontWeight.bold,
+                                      letterSpacing: 1)),
                             ),
                             pw.SizedBox(height: 10),
                             if (_screenInputController
                                 .baustelleStrasseController.text.isNotEmpty)
                               pw.Text(
-                                _screenInputController
-                                    .baustelleStrasseController.text,
-                                style: pw.TextStyle(
-                                  font: ocrFont,
-                                  fontSize: 10,
-                                  fontWeight: pw.FontWeight.bold,
-                                ),
-                              ),
+                                  _screenInputController
+                                      .baustelleStrasseController.text,
+                                  style: pw.TextStyle(
+                                      font: ocrFont,
+                                      fontSize: 10,
+                                      fontWeight: pw.FontWeight.bold)),
                             if (_screenInputController
                                     .baustellePlzController.text.isNotEmpty ||
                                 _screenInputController.baustelleOrtController
                                     .text.isNotEmpty) ...[
                               pw.SizedBox(height: 3),
                               pw.Text(
-                                "${_screenInputController.baustellePlzController.text} ${_screenInputController.baustelleOrtController.text}"
-                                    .trim(),
-                                style: pw.TextStyle(font: ocrFont, fontSize: 9),
-                              ),
+                                  "${_screenInputController.baustellePlzController.text} ${_screenInputController.baustelleOrtController.text}"
+                                      .trim(),
+                                  style:
+                                      pw.TextStyle(font: ocrFont, fontSize: 9)),
                             ],
                           ],
                         ),
@@ -407,22 +428,19 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                 pw.SizedBox(height: 30),
               ],
 
-              // Seitenzahl bei mehrseitigen Dokumenten
+              // Seitenzahl (bei mehreren Seiten)
               if (pages.length > 1)
                 pw.Align(
                   alignment: pw.Alignment.topRight,
-                  child: pw.Text(
-                    'Seite ${pageIndex + 1} von ${pages.length}',
-                    style: pw.TextStyle(
-                      font: ocrFont,
-                      fontSize: 9,
-                      color: PdfColors.grey600,
-                    ),
-                  ),
+                  child: pw.Text('Seite ${pageIndex + 1} von ${pages.length}',
+                      style: pw.TextStyle(
+                          font: ocrFont,
+                          fontSize: 9,
+                          color: PdfColors.grey600)),
                 ),
               if (pages.length > 1) pw.SizedBox(height: 15),
 
-              // POSITIONS TABELLE
+              // POSITIONSTABELLE
               pw.Container(
                 decoration: pw.BoxDecoration(
                   border: pw.Border.all(color: PdfColors.grey800, width: 1.5),
@@ -430,107 +448,82 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                 ),
                 child: pw.Column(
                   children: [
-                    // Tabellen Header
+                    // Header
                     pw.Container(
                       decoration: pw.BoxDecoration(
                         color: PdfColors.grey800,
-                        borderRadius: pw.BorderRadius.only(
-                          topLeft: pw.Radius.circular(5),
-                          topRight: pw.Radius.circular(5),
-                        ),
+                        borderRadius: const pw.BorderRadius.only(
+                            topLeft: pw.Radius.circular(5),
+                            topRight: pw.Radius.circular(5)),
                       ),
                       padding:
                           pw.EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       child: pw.Row(
                         children: [
                           pw.SizedBox(
-                            width: 35,
-                            child: pw.Text(
-                              'POS',
-                              style: pw.TextStyle(
-                                font: ocrFont,
-                                fontSize: 9,
-                                fontWeight: pw.FontWeight.bold,
-                                color: PdfColors.white,
-                              ),
-                            ),
-                          ),
+                              width: 35,
+                              child: pw.Text('POS',
+                                  style: pw.TextStyle(
+                                      font: ocrFont,
+                                      fontSize: 9,
+                                      fontWeight: pw.FontWeight.bold,
+                                      color: PdfColors.white))),
                           pw.SizedBox(
-                            width: 55,
-                            child: pw.Text(
-                              'MENGE',
-                              style: pw.TextStyle(
-                                font: ocrFont,
-                                fontSize: 9,
-                                fontWeight: pw.FontWeight.bold,
-                                color: PdfColors.white,
-                              ),
-                              textAlign: pw.TextAlign.right,
-                            ),
-                          ),
+                              width: 55,
+                              child: pw.Text('MENGE',
+                                  style: pw.TextStyle(
+                                      font: ocrFont,
+                                      fontSize: 9,
+                                      fontWeight: pw.FontWeight.bold,
+                                      color: PdfColors.white),
+                                  textAlign: pw.TextAlign.right)),
                           pw.SizedBox(width: 8),
                           pw.SizedBox(
-                            width: 45,
-                            child: pw.Text(
-                              'EINH',
-                              style: pw.TextStyle(
-                                font: ocrFont,
-                                fontSize: 9,
-                                fontWeight: pw.FontWeight.bold,
-                                color: PdfColors.white,
-                              ),
-                            ),
-                          ),
+                              width: 45,
+                              child: pw.Text('EINH',
+                                  style: pw.TextStyle(
+                                      font: ocrFont,
+                                      fontSize: 9,
+                                      fontWeight: pw.FontWeight.bold,
+                                      color: PdfColors.white))),
                           pw.Expanded(
-                            child: pw.Text(
-                              'BEZEICHNUNG',
-                              style: pw.TextStyle(
-                                font: ocrFont,
-                                fontSize: 9,
-                                fontWeight: pw.FontWeight.bold,
-                                color: PdfColors.white,
-                              ),
-                            ),
-                          ),
+                              child: pw.Text('BEZEICHNUNG',
+                                  style: pw.TextStyle(
+                                      font: ocrFont,
+                                      fontSize: 9,
+                                      fontWeight: pw.FontWeight.bold,
+                                      color: PdfColors.white))),
                           pw.SizedBox(
-                            width: 75,
-                            child: pw.Text(
-                              'EINZELPREIS',
-                              style: pw.TextStyle(
-                                font: ocrFont,
-                                fontSize: 9,
-                                fontWeight: pw.FontWeight.bold,
-                                color: PdfColors.white,
-                              ),
-                              textAlign: pw.TextAlign.right,
-                            ),
-                          ),
+                              width: 75,
+                              child: pw.Text('EINZELPREIS',
+                                  style: pw.TextStyle(
+                                      font: ocrFont,
+                                      fontSize: 9,
+                                      fontWeight: pw.FontWeight.bold,
+                                      color: PdfColors.white),
+                                  textAlign: pw.TextAlign.right)),
                           pw.SizedBox(width: 8),
                           pw.SizedBox(
-                            width: 80,
-                            child: pw.Text(
-                              'GESAMT',
-                              style: pw.TextStyle(
-                                font: ocrFont,
-                                fontSize: 9,
-                                fontWeight: pw.FontWeight.bold,
-                                color: PdfColors.white,
-                              ),
-                              textAlign: pw.TextAlign.right,
-                            ),
-                          ),
+                              width: 80,
+                              child: pw.Text('GESAMT',
+                                  style: pw.TextStyle(
+                                      font: ocrFont,
+                                      fontSize: 9,
+                                      fontWeight: pw.FontWeight.bold,
+                                      color: PdfColors.white),
+                                  textAlign: pw.TextAlign.right)),
                         ],
                       ),
                     ),
 
-                    // Tabellen Inhalt
+                    // Zeilen + Bilder
                     ...pageData.asMap().entries.expand((e) {
                       final int globalIndex =
                           pageIndex * linesPerPage + e.key + 1;
                       final item = e.value;
                       final bool isEven = e.key % 2 == 0;
 
-                      final List<pw.Widget> widgets = [
+                      final List<pw.Widget> row = [
                         pw.Container(
                           color: isEven ? PdfColors.grey100 : PdfColors.white,
                           padding: pw.EdgeInsets.symmetric(
@@ -539,129 +532,107 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                             crossAxisAlignment: pw.CrossAxisAlignment.start,
                             children: [
                               pw.SizedBox(
-                                width: 35,
-                                child: pw.Text(
-                                  globalIndex.toString().padLeft(2, '0'),
-                                  style: pw.TextStyle(
-                                    font: ocrFont,
-                                    fontSize: 9,
-                                    fontWeight: pw.FontWeight.bold,
-                                  ),
-                                ),
-                              ),
+                                  width: 35,
+                                  child: pw.Text(
+                                      globalIndex.toString().padLeft(2, '0'),
+                                      style: pw.TextStyle(
+                                          font: ocrFont,
+                                          fontSize: 9,
+                                          fontWeight: pw.FontWeight.bold))),
                               pw.SizedBox(
-                                width: 55,
-                                child: pw.Text(
-                                  _formatNumber(item.menge),
-                                  style:
-                                      pw.TextStyle(font: ocrFont, fontSize: 9),
-                                  textAlign: pw.TextAlign.right,
-                                ),
-                              ),
+                                  width: 55,
+                                  child: pw.Text(_formatNumber(item.menge),
+                                      style: pw.TextStyle(
+                                          font: ocrFont, fontSize: 9),
+                                      textAlign: pw.TextAlign.right)),
                               pw.SizedBox(width: 8),
                               pw.SizedBox(
-                                width: 45,
-                                child: pw.Text(
-                                  item.einh.isNotEmpty ? item.einh : '-',
-                                  style:
-                                      pw.TextStyle(font: ocrFont, fontSize: 9),
-                                ),
-                              ),
+                                  width: 45,
+                                  child: pw.Text(
+                                      item.einh.isNotEmpty ? item.einh : '-',
+                                      style: pw.TextStyle(
+                                          font: ocrFont, fontSize: 9))),
                               pw.Expanded(
-                                child: pw.Text(
-                                  item.bezeichnung.isNotEmpty
-                                      ? item.bezeichnung
-                                      : '-',
-                                  style:
-                                      pw.TextStyle(font: ocrFont, fontSize: 9),
-                                  maxLines: 3,
-                                ),
-                              ),
+                                  child: pw.Text(
+                                      item.bezeichnung.isNotEmpty
+                                          ? item.bezeichnung
+                                          : '-',
+                                      style: pw.TextStyle(
+                                          font: ocrFont, fontSize: 9),
+                                      maxLines: 3)),
                               pw.SizedBox(
-                                width: 75,
-                                child: pw.Text(
-                                  '${_formatNumber(item.einzelPreis)} €',
-                                  style:
-                                      pw.TextStyle(font: ocrFont, fontSize: 9),
-                                  textAlign: pw.TextAlign.right,
-                                ),
-                              ),
+                                  width: 75,
+                                  child: pw.Text(
+                                      '${_formatNumber(item.einzelPreis)} €',
+                                      style: pw.TextStyle(
+                                          font: ocrFont, fontSize: 9),
+                                      textAlign: pw.TextAlign.right)),
                               pw.SizedBox(width: 8),
                               pw.SizedBox(
-                                width: 80,
-                                child: pw.Text(
-                                  '${_formatNumber(item.gesamtPreis)} €',
-                                  style: pw.TextStyle(
-                                    font: ocrFont,
-                                    fontSize: 9,
-                                    fontWeight: pw.FontWeight.bold,
-                                  ),
-                                  textAlign: pw.TextAlign.right,
-                                ),
-                              ),
+                                  width: 80,
+                                  child: pw.Text(
+                                      '${_formatNumber(item.gesamtPreis)} €',
+                                      style: pw.TextStyle(
+                                          font: ocrFont,
+                                          fontSize: 9,
+                                          fontWeight: pw.FontWeight.bold),
+                                      textAlign: pw.TextAlign.right)),
                             ],
                           ),
                         ),
                       ];
 
-                      // Bilder für diese Position
+                      // Bilder der Position
                       if (item.img != null && item.img!.isNotEmpty) {
                         final List<pw.Widget> imageWidgets = [];
-                        for (var imagePath in item.img!) {
+                        for (var path in item.img!) {
                           try {
-                            final file = File(imagePath);
+                            final file = File(path);
                             if (file.existsSync()) {
-                              final imageBytes = file.readAsBytesSync();
+                              final bytes = file.readAsBytesSync();
                               imageWidgets.add(
                                 pw.Container(
                                   width: 70,
                                   height: 70,
                                   decoration: pw.BoxDecoration(
-                                    border: pw.Border.all(
-                                      color: PdfColors.grey400,
-                                      width: 1,
-                                    ),
-                                    borderRadius: pw.BorderRadius.circular(4),
-                                  ),
+                                      border: pw.Border.all(
+                                          color: PdfColors.grey400),
+                                      borderRadius:
+                                          pw.BorderRadius.circular(4)),
                                   child: pw.ClipRRect(
                                     horizontalRadius: 3,
                                     verticalRadius: 3,
-                                    child: pw.Image(
-                                      pw.MemoryImage(imageBytes),
-                                      fit: pw.BoxFit.cover,
-                                    ),
+                                    child: pw.Image(pw.MemoryImage(bytes),
+                                        fit: pw.BoxFit.cover),
                                   ),
                                 ),
                               );
                             }
-                          } catch (e) {
-                            debugPrint(
-                                "Fehler beim Laden des Bildes für PDF: $e");
-                          }
+                          } catch (_) {}
                         }
                         if (imageWidgets.isNotEmpty) {
-                          widgets.add(
+                          row.add(
                             pw.Container(
                               color:
                                   isEven ? PdfColors.grey100 : PdfColors.white,
                               padding: pw.EdgeInsets.only(
                                   left: 12, right: 12, bottom: 10),
                               child: pw.Wrap(
-                                spacing: 6,
-                                runSpacing: 6,
-                                children: imageWidgets,
-                              ),
+                                  spacing: 6,
+                                  runSpacing: 6,
+                                  children: imageWidgets),
                             ),
                           );
                         }
                       }
 
-                      return widgets;
+                      return row;
                     }),
                   ],
                 ),
               ),
 
+              // Fortsetzungshinweis
               if (!isLastPage) ...[
                 pw.SizedBox(height: 20),
                 pw.Center(
@@ -669,67 +640,55 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                     padding:
                         pw.EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                     decoration: pw.BoxDecoration(
-                      color: PdfColors.grey300,
-                      borderRadius: pw.BorderRadius.circular(4),
-                    ),
-                    child: pw.Text(
-                      'FORTSETZUNG FOLGT →',
-                      style: pw.TextStyle(
-                        font: ocrFont,
-                        fontSize: 10,
-                        fontWeight: pw.FontWeight.bold,
-                        letterSpacing: 1,
-                      ),
-                    ),
+                        color: PdfColors.grey300,
+                        borderRadius: pw.BorderRadius.circular(4)),
+                    child: pw.Text('FORTSETZUNG FOLGT →',
+                        style: pw.TextStyle(
+                            font: ocrFont,
+                            fontSize: 10,
+                            fontWeight: pw.FontWeight.bold,
+                            letterSpacing: 1)),
                   ),
                 ),
               ],
 
+              // Nur auf letzter Seite
               if (isLastPage) ...[
                 pw.SizedBox(height: 20),
-
-                // GESAMTSUMME
+                // Gesamtbetrag
                 pw.Container(
                   decoration: pw.BoxDecoration(
-                    color: PdfColors.grey800,
-                    borderRadius: pw.BorderRadius.circular(6),
-                  ),
+                      color: PdfColors.grey800,
+                      borderRadius: pw.BorderRadius.circular(6)),
                   padding:
                       pw.EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   child: pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
+                      pw.Text('GESAMTBETRAG',
+                          style: pw.TextStyle(
+                              font: ocrFont,
+                              fontSize: 12,
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColors.white,
+                              letterSpacing: 1)),
                       pw.Text(
-                        'GESAMTBETRAG',
-                        style: pw.TextStyle(
-                          font: ocrFont,
-                          fontSize: 12,
-                          fontWeight: pw.FontWeight.bold,
-                          color: PdfColors.white,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                      pw.Text(
-                        '${_formatNumber(widget.receiptData.fold(0.0, (sum, e) => sum + e.gesamtPreis))} €',
-                        style: pw.TextStyle(
-                          font: ocrFont,
-                          fontSize: 14,
-                          fontWeight: pw.FontWeight.bold,
-                          color: PdfColors.white,
-                        ),
-                      ),
+                          '${_formatNumber(widget.receiptData.fold(0.0, (sum, e) => sum + e.gesamtPreis))} €',
+                          style: pw.TextStyle(
+                              font: ocrFont,
+                              fontSize: 14,
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColors.white)),
                     ],
                   ),
                 ),
-
                 pw.SizedBox(height: 30),
 
                 // KUNDE & MONTEUR
                 pw.Container(
                   decoration: pw.BoxDecoration(
-                    border: pw.Border.all(color: PdfColors.grey400, width: 1),
-                    borderRadius: pw.BorderRadius.circular(8),
-                  ),
+                      border: pw.Border.all(color: PdfColors.grey400, width: 1),
+                      borderRadius: pw.BorderRadius.circular(8)),
                   padding: pw.EdgeInsets.all(20),
                   child: pw.Row(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -742,41 +701,31 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                             pw.Container(
                               padding: pw.EdgeInsets.only(bottom: 8),
                               decoration: pw.BoxDecoration(
-                                border: pw.Border(
-                                  bottom: pw.BorderSide(
-                                    color: PdfColors.grey700,
-                                    width: 2,
-                                  ),
-                                ),
-                              ),
-                              child: pw.Text(
-                                "KUNDE",
-                                style: pw.TextStyle(
-                                  font: ocrFont,
-                                  fontSize: 11,
-                                  fontWeight: pw.FontWeight.bold,
-                                  letterSpacing: 1,
-                                ),
-                              ),
+                                  border: pw.Border(
+                                      bottom: pw.BorderSide(
+                                          color: PdfColors.grey700, width: 2))),
+                              child: pw.Text("KUNDE",
+                                  style: pw.TextStyle(
+                                      font: ocrFont,
+                                      fontSize: 11,
+                                      fontWeight: pw.FontWeight.bold,
+                                      letterSpacing: 1)),
                             ),
                             pw.SizedBox(height: 10),
                             if (_screenInputController
                                 .kunde.value.name.isNotEmpty)
-                              pw.Text(
-                                _screenInputController.kunde.value.name,
-                                style: pw.TextStyle(
-                                  font: ocrFont,
-                                  fontSize: 10,
-                                  fontWeight: pw.FontWeight.bold,
-                                ),
-                              ),
+                              pw.Text(_screenInputController.kunde.value.name,
+                                  style: pw.TextStyle(
+                                      font: ocrFont,
+                                      fontSize: 10,
+                                      fontWeight: pw.FontWeight.bold)),
                             if (_screenInputController
                                 .kunde.value.strasse.isNotEmpty) ...[
                               pw.SizedBox(height: 3),
                               pw.Text(
-                                _screenInputController.kunde.value.strasse,
-                                style: pw.TextStyle(font: ocrFont, fontSize: 9),
-                              ),
+                                  _screenInputController.kunde.value.strasse,
+                                  style:
+                                      pw.TextStyle(font: ocrFont, fontSize: 9)),
                             ],
                             if (_screenInputController
                                     .kunde.value.plz.isNotEmpty ||
@@ -784,44 +733,35 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                                     .kunde.value.ort.isNotEmpty) ...[
                               pw.SizedBox(height: 3),
                               pw.Text(
-                                "${_screenInputController.kunde.value.plz} ${_screenInputController.kunde.value.ort}"
-                                    .trim(),
-                                style: pw.TextStyle(font: ocrFont, fontSize: 9),
-                              ),
+                                  "${_screenInputController.kunde.value.plz} ${_screenInputController.kunde.value.ort}"
+                                      .trim(),
+                                  style:
+                                      pw.TextStyle(font: ocrFont, fontSize: 9)),
                             ],
                             if (_screenInputController
                                 .kunde.value.telefon.isNotEmpty) ...[
                               pw.SizedBox(height: 6),
                               pw.Text(
-                                "Tel: ${_screenInputController.kunde.value.telefon}",
-                                style: pw.TextStyle(font: ocrFont, fontSize: 9),
-                              ),
+                                  "Tel: ${_screenInputController.kunde.value.telefon}",
+                                  style:
+                                      pw.TextStyle(font: ocrFont, fontSize: 9)),
                             ],
                             if (_screenInputController
                                 .kunde.value.email.isNotEmpty) ...[
                               pw.SizedBox(height: 3),
-                              pw.Text(
-                                _screenInputController.kunde.value.email,
-                                style: pw.TextStyle(
-                                  font: ocrFont,
-                                  fontSize: 9,
-                                  color: PdfColors.blue800,
-                                ),
-                              ),
+                              pw.Text(_screenInputController.kunde.value.email,
+                                  style: pw.TextStyle(
+                                      font: ocrFont,
+                                      fontSize: 9,
+                                      color: PdfColors.blue800)),
                             ],
                           ],
                         ),
                       ),
                       pw.SizedBox(width: 25),
-
-                      // Vertikale Trennlinie
                       pw.Container(
-                        width: 1,
-                        height: 100,
-                        color: PdfColors.grey400,
-                      ),
+                          width: 1, height: 100, color: PdfColors.grey400),
                       pw.SizedBox(width: 25),
-
                       // Monteur
                       pw.Expanded(
                         child: pw.Column(
@@ -830,53 +770,43 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                             pw.Container(
                               padding: pw.EdgeInsets.only(bottom: 8),
                               decoration: pw.BoxDecoration(
-                                border: pw.Border(
-                                  bottom: pw.BorderSide(
-                                    color: PdfColors.grey700,
-                                    width: 2,
-                                  ),
-                                ),
-                              ),
-                              child: pw.Text(
-                                "MONTEUR",
-                                style: pw.TextStyle(
-                                  font: ocrFont,
-                                  fontSize: 11,
-                                  fontWeight: pw.FontWeight.bold,
-                                  letterSpacing: 1,
-                                ),
-                              ),
+                                  border: pw.Border(
+                                      bottom: pw.BorderSide(
+                                          color: PdfColors.grey700, width: 2))),
+                              child: pw.Text("MONTEUR",
+                                  style: pw.TextStyle(
+                                      font: ocrFont,
+                                      fontSize: 11,
+                                      fontWeight: pw.FontWeight.bold,
+                                      letterSpacing: 1)),
                             ),
                             pw.SizedBox(height: 10),
                             if (_screenInputController
                                 .monteur.value.vollerName.isNotEmpty)
                               pw.Text(
-                                _screenInputController.monteur.value.vollerName,
-                                style: pw.TextStyle(
-                                  font: ocrFont,
-                                  fontSize: 10,
-                                  fontWeight: pw.FontWeight.bold,
-                                ),
-                              ),
+                                  _screenInputController
+                                      .monteur.value.vollerName,
+                                  style: pw.TextStyle(
+                                      font: ocrFont,
+                                      fontSize: 10,
+                                      fontWeight: pw.FontWeight.bold)),
                             if (_screenInputController
                                 .monteur.value.telefon.isNotEmpty) ...[
                               pw.SizedBox(height: 6),
                               pw.Text(
-                                "Tel: ${_screenInputController.monteur.value.telefon}",
-                                style: pw.TextStyle(font: ocrFont, fontSize: 9),
-                              ),
+                                  "Tel: ${_screenInputController.monteur.value.telefon}",
+                                  style:
+                                      pw.TextStyle(font: ocrFont, fontSize: 9)),
                             ],
                             if (_screenInputController
                                 .monteur.value.email.isNotEmpty) ...[
                               pw.SizedBox(height: 3),
                               pw.Text(
-                                _screenInputController.monteur.value.email,
-                                style: pw.TextStyle(
-                                  font: ocrFont,
-                                  fontSize: 9,
-                                  color: PdfColors.blue800,
-                                ),
-                              ),
+                                  _screenInputController.monteur.value.email,
+                                  style: pw.TextStyle(
+                                      font: ocrFont,
+                                      fontSize: 9,
+                                      color: PdfColors.blue800)),
                             ],
                           ],
                         ),
@@ -884,123 +814,135 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                     ],
                   ),
                 ),
-
                 pw.SizedBox(height: 30),
 
                 // UNTERSCHRIFTEN
                 pw.Container(
                   decoration: pw.BoxDecoration(
-                    border: pw.Border.all(color: PdfColors.grey400, width: 1),
-                    borderRadius: pw.BorderRadius.circular(8),
-                  ),
+                      border: pw.Border.all(color: PdfColors.grey400, width: 1),
+                      borderRadius: pw.BorderRadius.circular(8)),
                   padding: pw.EdgeInsets.all(20),
                   child: pw.Column(
                     children: [
-                      pw.Text(
-                        "UNTERSCHRIFTEN",
-                        style: pw.TextStyle(
-                          font: ocrFont,
-                          fontSize: 11,
-                          fontWeight: pw.FontWeight.bold,
-                          letterSpacing: 1,
-                        ),
-                      ),
+                      pw.Text("UNTERSCHRIFTEN",
+                          style: pw.TextStyle(
+                              font: ocrFont,
+                              fontSize: 11,
+                              fontWeight: pw.FontWeight.bold,
+                              letterSpacing: 1)),
                       pw.SizedBox(height: 20),
                       pw.Row(
                         mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
                         children: [
-                          // Kunde Unterschrift
-                          pw.Column(
-                            children: [
-                              pw.Text(
-                                "Kunde",
+                          pw.Column(children: [
+                            pw.Text("Kunde",
                                 style: pw.TextStyle(
-                                  font: ocrFont,
-                                  fontSize: 9,
-                                  fontWeight: pw.FontWeight.bold,
-                                ),
-                              ),
-                              pw.SizedBox(height: 10),
-                              pw.Container(
-                                width: 120,
-                                height: 80,
-                                decoration: pw.BoxDecoration(
+                                    font: ocrFont,
+                                    fontSize: 9,
+                                    fontWeight: pw.FontWeight.bold)),
+                            pw.SizedBox(height: 10),
+                            pw.Container(
+                              width: 120,
+                              height: 80,
+                              decoration: pw.BoxDecoration(
                                   border: pw.Border.all(
-                                    color: PdfColors.grey600,
-                                    width: 1,
-                                  ),
-                                ),
-                                child: _unterschriftController
-                                            .kundePngBytes.value !=
-                                        null
-                                    ? pw.Image(
-                                        pw.MemoryImage(
-                                          _unterschriftController
-                                              .kundePngBytes.value!,
-                                        ),
-                                        fit: pw.BoxFit.contain,
-                                      )
-                                    : pw.SizedBox(),
-                              ),
-                            ],
-                          ),
-                          // Monteur Unterschrift
-                          pw.Column(
-                            children: [
-                              pw.Text(
-                                "Monteur",
+                                      color: PdfColors.grey600, width: 1)),
+                              child:
+                                  _unterschriftController.kundePngBytes.value !=
+                                          null
+                                      ? pw.Image(
+                                          pw.MemoryImage(_unterschriftController
+                                              .kundePngBytes.value!),
+                                          fit: pw.BoxFit.contain)
+                                      : pw.SizedBox(),
+                            ),
+                          ]),
+                          pw.Column(children: [
+                            pw.Text("Monteur",
                                 style: pw.TextStyle(
-                                  font: ocrFont,
-                                  fontSize: 9,
-                                  fontWeight: pw.FontWeight.bold,
-                                ),
-                              ),
-                              pw.SizedBox(height: 10),
-                              pw.Container(
-                                width: 120,
-                                height: 80,
-                                decoration: pw.BoxDecoration(
+                                    font: ocrFont,
+                                    fontSize: 9,
+                                    fontWeight: pw.FontWeight.bold)),
+                            pw.SizedBox(height: 10),
+                            pw.Container(
+                              width: 120,
+                              height: 80,
+                              decoration: pw.BoxDecoration(
                                   border: pw.Border.all(
-                                    color: PdfColors.grey600,
-                                    width: 1,
-                                  ),
-                                ),
-                                child: _unterschriftController
-                                            .monteurPngBytes.value !=
-                                        null
-                                    ? pw.Image(
-                                        pw.MemoryImage(
-                                          _unterschriftController
-                                              .monteurPngBytes.value!,
-                                        ),
-                                        fit: pw.BoxFit.contain,
-                                      )
-                                    : pw.SizedBox(),
-                              ),
-                            ],
-                          ),
+                                      color: PdfColors.grey600, width: 1)),
+                              child: _unterschriftController
+                                          .monteurPngBytes.value !=
+                                      null
+                                  ? pw.Image(
+                                      pw.MemoryImage(_unterschriftController
+                                          .monteurPngBytes.value!),
+                                      fit: pw.BoxFit.contain)
+                                  : pw.SizedBox(),
+                            ),
+                          ]),
                         ],
                       ),
                     ],
                   ),
                 ),
-
                 pw.SizedBox(height: 30),
 
                 // DATUM & UHRZEIT
                 pw.Align(
                   alignment: pw.Alignment.centerRight,
                   child: pw.Text(
-                    DateFormat('dd.MM.yyyy - HH:mm').format(DateTime.now()) +
-                        ' Uhr',
-                    style: pw.TextStyle(
-                      font: ocrFont,
-                      fontSize: 9,
-                      color: PdfColors.grey600,
-                    ),
-                  ),
+                      '${DateFormat('dd.MM.yyyy - HH:mm').format(DateTime.now())} Uhr',
+                      style: pw.TextStyle(
+                          font: ocrFont,
+                          fontSize: 9,
+                          color: PdfColors.grey600)),
                 ),
               ],
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text("Zahlungsinformationen",
+                      style: pw.TextStyle(
+                          font: ocrFont,
+                          fontSize: 11,
+                          fontWeight: pw.FontWeight.bold)),
+                  pw.SizedBox(height: 8),
+                  pw.Text("Empfänger:",
+                      style: pw.TextStyle(font: ocrFont, fontSize: 9)),
+                  pw.Text(
+                      _screenInputController.nameBankQrController.text.trim(),
+                      style: pw.TextStyle(
+                          font: ocrFont,
+                          fontSize: 10,
+                          fontWeight: pw.FontWeight.bold)),
+                  pw.Text(
+                      "IBAN: ${_screenInputController.ibanBankQrController.text.trim()}",
+                      style: pw.TextStyle(font: ocrFont, fontSize: 9)),
+                  if (_screenInputController.bicBankQrController.text
+                      .trim()
+                      .isNotEmpty)
+                    pw.Text(
+                        "BIC: ${_screenInputController.bicBankQrController.text.trim()}",
+                        style: pw.TextStyle(font: ocrFont, fontSize: 9)),
+                  pw.Text(
+                      "Betrag: ${_formatNumber(widget.receiptData.fold(0.0, (sum, e) => sum + e.gesamtPreis))} €",
+                      style: pw.TextStyle(
+                          font: ocrFont,
+                          fontSize: 10,
+                          fontWeight: pw.FontWeight.bold)),
+                  if (_screenInputController.purposeBankQrController.text
+                      .trim()
+                      .isNotEmpty) ...[
+                    pw.SizedBox(height: 4),
+                    pw.Text("Verwendungszweck:",
+                        style: pw.TextStyle(font: ocrFont, fontSize: 9)),
+                    pw.Text(
+                        _screenInputController.purposeBankQrController.text
+                            .trim(),
+                        style: pw.TextStyle(font: ocrFont, fontSize: 9)),
+                  ],
+                ],
+              ),
             ],
           ),
         );
@@ -1009,33 +951,25 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       final pdfBytes = await pdf.save();
 
       if (kIsWeb) {
-        // Web: später ggf. Download-Logik
+        // Web-Handling später ergänzen
       } else {
         final dir = await getTemporaryDirectory();
-        final file = File(
-            "${dir.path}/Rechnung_${_screenInputController.kunde.value?.name}.pdf");
+        final fileName =
+            "Rechnung_${_screenInputController.kunde.value.name.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.pdf";
+        final file = File("${dir.path}/$fileName");
         await file.writeAsBytes(pdfBytes);
         await Share.shareXFiles([XFile(file.path)],
             text: 'Hier ist Ihre Rechnung');
       }
     } catch (e) {
-      Get.snackbar(
-        "Fehler",
-        "Fehler beim Erstellen des PDFs: $e",
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.redAccent.withOpacity(0.9),
-        colorText: Colors.white,
-        borderRadius: 15,
-        margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 4),
-        isDismissible: true,
-      );
+      Get.snackbar("Fehler", "PDF konnte nicht erstellt werden: $e",
+          backgroundColor: Colors.redAccent.withOpacity(0.9),
+          colorText: Colors.white);
     } finally {
       setState(() => _isProcessing = false);
     }
   }
 
-  // Verbesserter Custom Header mit SafeArea
   Widget _buildHeader(BuildContext context) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
@@ -1050,44 +984,31 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
               child: Container(
                 padding: EdgeInsets.all(8.w),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                child: Icon(
-                  Icons.arrow_back,
-                  color: AppColors.primary,
-                  size: 24.sp,
-                ),
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12.r)),
+                child: Icon(Icons.arrow_back,
+                    color: AppColors.primary, size: 24.sp),
               ),
             ),
             Expanded(
               child: Center(
-                child: Text(
-                  "Kassenbon Vorschau (Neues Design)",
-                  style: TextStyle(
-                    fontSize: 20.sp,
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                child: Text("Kassenbon Vorschau (Neues Design)",
+                    style: TextStyle(
+                        fontSize: 20.sp,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold)),
               ),
             ),
             GestureDetector(
               onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => SettingsScreen()),
-              ),
+                  context, MaterialPageRoute(builder: (_) => SettingsScreen())),
               child: Container(
                 padding: EdgeInsets.all(8.w),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                child: Icon(
-                  Icons.settings,
-                  color: AppColors.primary,
-                  size: 24.sp,
-                ),
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12.r)),
+                child:
+                    Icon(Icons.settings, color: AppColors.primary, size: 24.sp),
               ),
             ),
           ],
@@ -1102,10 +1023,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       backgroundColor: AppColors.background,
       body: Column(
         children: [
-          // Custom Header mit SafeArea für Android
           _buildHeader(context),
-
-          // Live-Vorschau
           Expanded(
             child: Center(
               child: Container(
@@ -1120,18 +1038,15 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                       color: AppColors.primary.withOpacity(0.3), width: 1),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primary.withOpacity(0.08),
-                      blurRadius: 20.r,
-                      offset: Offset(0, 8.h),
-                    ),
+                        color: AppColors.primary.withOpacity(0.08),
+                        blurRadius: 20.r,
+                        offset: Offset(0, 8.h))
                   ],
                 ),
                 child: ReceiptContent(receiptData: widget.receiptData),
               ),
             ),
           ),
-
-          // PDF-Button
           SafeArea(
             child: Padding(
               padding: EdgeInsets.fromLTRB(24.w, 8.h, 24.w, 24.h),
@@ -1148,11 +1063,10 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                               color: Colors.white, strokeWidth: 3))
                       : Icon(Icons.picture_as_pdf, size: 32.sp),
                   label: Text(
-                    _isProcessing
-                        ? 'PDF wird erstellt...'
-                        : 'Als PDF speichern & teilen',
-                    style: AppText.button.copyWith(fontSize: 18.sp),
-                  ),
+                      _isProcessing
+                          ? 'PDF wird erstellt...'
+                          : 'Als PDF speichern & teilen',
+                      style: AppText.button.copyWith(fontSize: 18.sp)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,

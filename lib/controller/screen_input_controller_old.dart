@@ -294,7 +294,7 @@ class ScreenInputController extends GetxController {
     // Nach dem Initialisieren der Controller die geladenen Werte in die Controller schreiben
     updateMonteurControllers();
     updateKundeControllers();
-    
+
     // Initiale Prüfung ob gespeichert werden kann
     _checkCanSaveKunde();
     _checkCanSaveMonteur();
@@ -423,7 +423,7 @@ class ScreenInputController extends GetxController {
         email: firmaData['email'],
         website: firmaData['website'],
       );
-      
+
       // Controller aktualisieren statt neu zu erstellen
       _isUpdatingControllers = true;
       firmaNameController.text = firma.value.name ?? '';
@@ -434,7 +434,7 @@ class ScreenInputController extends GetxController {
       firmaEmailController.text = firma.value.email ?? '';
       firmaWebsiteController.text = firma.value.website ?? '';
       _isUpdatingControllers = false;
-      
+
       _showSnackBar("Erfolg", "Firma wurde geladen!");
     }
   }
@@ -523,13 +523,13 @@ class ScreenInputController extends GetxController {
 
       // Speichere und erhalte die neue ID
       final newId = await _dbHelper.insertKunde(kundeData);
-      
+
       // Aktualisiere kunde.value mit der neuen ID
       kunde.value = kunde.value.copyWith(id: newId);
-      
+
       // Controller aktualisieren
       updateKundeControllers();
-      
+
       await _loadAllDataFromDatabase();
       return true;
     } catch (e) {
@@ -619,13 +619,13 @@ class ScreenInputController extends GetxController {
 
       // Speichere und erhalte die neue ID
       final newId = await _dbHelper.insertMonteur(monteurData);
-      
+
       // Aktualisiere monteur.value mit der neuen ID
       monteur.value = monteur.value.copyWith(id: newId);
-      
+
       // Controller aktualisieren
       updateMonteurControllers();
-      
+
       await _loadAllDataFromDatabase();
       return true;
     } catch (e) {
@@ -1027,7 +1027,7 @@ class ScreenInputController extends GetxController {
     final newNachname = monteur.value?.nachname ?? '';
     final newTelefon = monteur.value?.telefon ?? '';
     final newEmail = monteur.value?.email ?? '';
-    
+
     if (monteurVornameController.text != newVorname) {
       monteurVornameController.text = newVorname;
     }
@@ -1042,7 +1042,7 @@ class ScreenInputController extends GetxController {
     }
 
     _isUpdatingControllers = false; // Listener wieder aktivieren
-    
+
     // Prüfung nach dem Aktualisieren ausführen
     _checkCanSaveMonteur();
   }
@@ -1058,7 +1058,7 @@ class ScreenInputController extends GetxController {
     final newOrt = kunde.value?.ort ?? '';
     final newTelefon = kunde.value?.telefon ?? '';
     final newEmail = kunde.value?.email ?? '';
-    
+
     if (kundeNameController.text != newName) {
       kundeNameController.text = newName;
     }
@@ -1079,7 +1079,7 @@ class ScreenInputController extends GetxController {
     }
 
     _isUpdatingControllers = false; // Listener wieder aktivieren
-    
+
     // Prüfung nach dem Aktualisieren ausführen
     _checkCanSaveKunde();
   }

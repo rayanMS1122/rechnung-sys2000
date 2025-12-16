@@ -31,7 +31,7 @@ class DatabaseHelper {
       // Datenbank öffnen/erstellen
       final db = await openDatabase(
         path,
-        version: 5, // Version erhöht für neue Felder
+        version: 7, // Version erhöht für neue Felder
         onCreate: _createDB,
         onUpgrade: _onUpgrade,
       );
@@ -125,13 +125,12 @@ class DatabaseHelper {
     debugPrint('Datenbank gelöscht: $path');
   }
 
-// Wird aufgerufen, wenn Datenbank-Version erhöht wird (schrittweise Upgrades)
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
     debugPrint('Datenbank-Upgrade von Version $oldVersion auf $newVersion');
 
     await db.transaction((txn) async {
-      if (oldVersion < 5) {
-        // Alle Bank-Spalten hinzufügen (falls noch nicht vorhanden)
+      if (oldVersion < 6) {
+        // Bestehende Bank-Spalten (wie du schon hast)
         final columnsToAdd = [
           'bank_name TEXT',
           'bank_iban TEXT',
@@ -144,16 +143,24 @@ class DatabaseHelper {
         for (var column in columnsToAdd) {
           try {
             await txn.execute('ALTER TABLE einstellungen ADD COLUMN $column');
-            debugPrint('Spalte hinzugefügt: $column');
           } catch (e) {
-            // Spalte existiert bereits → ignorieren
-            debugPrint('Spalte existierte bereits oder Fehler: $column → $e');
+            debugPrint('Spalte existierte bereits: $column');
           }
         }
       }
 
-      // Hier können zukünftige Versionen kommen, z. B.:
-      // if (oldVersion < 5) { ... }
+      // NEU: Ab Version 7 – Dokumententitel hinzufügen
+      if (oldVersion < 7) {
+        try {
+          await txn.execute(
+              'ALTER TABLE einstellungen ADD COLUMN dokument_titel TEXT DEFAULT "RECHNUNG"');
+          debugPrint(
+              'Spalte dokument_titel hinzugefügt mit Default "RECHNUNG"');
+        } catch (e) {
+          debugPrint(
+              'Spalte dokument_titel existierte bereits oder Fehler: $e');
+        }
+      }
     });
   }
 
