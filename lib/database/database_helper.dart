@@ -19,7 +19,7 @@ class DatabaseHelper {
   Future<Database> _initDB() async {
     try {
       final dbPath = await getDatabasesPath();
-      final dbName = 'assets/test_DB/test';
+      final dbName = 'assets/test_DB/db';
       final path = join(dbPath, dbName);
 
       debugPrint('Datenbank-Pfad: $path');
@@ -31,7 +31,7 @@ class DatabaseHelper {
       // Datenbank öffnen/erstellen
       final db = await openDatabase(
         path,
-        version: 7, // Version erhöht für neue Felder
+        version: 8, // Version erhöht für neue Felder
         onCreate: _createDB,
         onUpgrade: _onUpgrade,
       );
@@ -94,7 +94,8 @@ class DatabaseHelper {
     ''');
     await db.execute('''
   CREATE TABLE einstellungen (
-    id INTEGER PRIMARY KEY CHECK (id = 1),  -- Nur eine Zeile erlauben
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    
     firma_name TEXT,
     firma_strasse TEXT,
     firma_plz TEXT,
@@ -108,10 +109,20 @@ class DatabaseHelper {
     baustelle_ort TEXT,
     
     logo_path TEXT,
-    enable_editing INTEGER DEFAULT 0,  -- 0 = false, 1 = true
+    enable_editing INTEGER DEFAULT 0,
     
-    last_monteur_id INTEGER,  -- ID des zuletzt ausgewählten Monteurs
-    last_kunde_id INTEGER     -- ID des zuletzt ausgewählten Kunden
+    last_monteur_id INTEGER,
+    last_kunde_id INTEGER,
+    
+    dokument_titel TEXT DEFAULT "RECHNUNG",
+    
+    -- === BANKDATEN SPALTEN ===
+    bank_name TEXT,
+    bank_iban TEXT,
+    bank_bic TEXT,
+    bank_amount TEXT,
+    bank_purpose TEXT,
+    bank_qr_data TEXT
   )
 ''');
   }
@@ -148,19 +159,21 @@ class DatabaseHelper {
           }
         }
       }
+      await db.transaction((txn) async {
+        // Der alte Block für Version < 6 kann komplett weg oder auskommentiert werden
+        // Weil die Bank-Spalten jetzt immer in CREATE TABLE drin sind
 
-      // NEU: Ab Version 7 – Dokumententitel hinzufügen
-      if (oldVersion < 7) {
-        try {
-          await txn.execute(
-              'ALTER TABLE einstellungen ADD COLUMN dokument_titel TEXT DEFAULT "RECHNUNG"');
-          debugPrint(
-              'Spalte dokument_titel hinzugefügt mit Default "RECHNUNG"');
-        } catch (e) {
-          debugPrint(
-              'Spalte dokument_titel existierte bereits oder Fehler: $e');
+        if (oldVersion < 7) {
+          try {
+            await txn.execute(
+                'ALTER TABLE einstellungen ADD COLUMN dokument_titel TEXT DEFAULT "RECHNUNG"');
+          } catch (e) {
+            debugPrint('dokument_titel bereits vorhanden oder Fehler: $e');
+          }
         }
-      }
+
+        // Falls du später noch Spalten brauchst, hier neuen Block für Version 8+ einfügen
+      });
     });
   }
 

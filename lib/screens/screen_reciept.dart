@@ -955,7 +955,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       } else {
         final dir = await getTemporaryDirectory();
         final fileName =
-            "Rechnung_${_screenInputController.kunde.value.name.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.pdf";
+            "${_screenInputController.dokumentTitel.value}_${_screenInputController.kunde.value.name.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.pdf";
         final file = File("${dir.path}/$fileName");
         await file.writeAsBytes(pdfBytes);
         await Share.shareXFiles([XFile(file.path)],
