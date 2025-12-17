@@ -31,7 +31,7 @@ class DatabaseHelper {
       // Datenbank öffnen/erstellen
       final db = await openDatabase(
         path,
-        version: 8, // Version erhöht für neue Felder
+        version: 1, // Version erhöht für neue Felder
         onCreate: _createDB,
         onUpgrade: _onUpgrade,
       );
@@ -140,40 +140,16 @@ class DatabaseHelper {
     debugPrint('Datenbank-Upgrade von Version $oldVersion auf $newVersion');
 
     await db.transaction((txn) async {
-      if (oldVersion < 6) {
-        // Bestehende Bank-Spalten (wie du schon hast)
-        final columnsToAdd = [
-          'bank_name TEXT',
-          'bank_iban TEXT',
-          'bank_bic TEXT',
-          'bank_amount TEXT',
-          'bank_purpose TEXT',
-          'bank_qr_data TEXT',
-        ];
+      // Hier kommen später neue Spalten hinzu, wenn du die Version erhöhst
 
-        for (var column in columnsToAdd) {
-          try {
-            await txn.execute('ALTER TABLE einstellungen ADD COLUMN $column');
-          } catch (e) {
-            debugPrint('Spalte existierte bereits: $column');
-          }
-        }
-      }
-      await db.transaction((txn) async {
-        // Der alte Block für Version < 6 kann komplett weg oder auskommentiert werden
-        // Weil die Bank-Spalten jetzt immer in CREATE TABLE drin sind
+      // Beispiel für die Zukunft:
+      // if (oldVersion < 2) {
+      //   await txn.execute('ALTER TABLE einstellungen ADD COLUMN neue_spalte TEXT');
+      // }
 
-        if (oldVersion < 7) {
-          try {
-            await txn.execute(
-                'ALTER TABLE einstellungen ADD COLUMN dokument_titel TEXT DEFAULT "RECHNUNG"');
-          } catch (e) {
-            debugPrint('dokument_titel bereits vorhanden oder Fehler: $e');
-          }
-        }
-
-        // Falls du später noch Spalten brauchst, hier neuen Block für Version 8+ einfügen
-      });
+      // if (oldVersion < 3) {
+      //   await txn.execute('ALTER TABLE einstellungen ADD COLUMN noch_eine_spalte INTEGER DEFAULT 0');
+      // }
     });
   }
 
