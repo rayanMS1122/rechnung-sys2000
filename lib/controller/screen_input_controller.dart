@@ -270,15 +270,6 @@ class ScreenInputController extends GetxController {
       bic: bic,
       purpose: purpose,
     );
-
-    Get.snackbar(
-      'Erfolg',
-      'QR-Rechnungscode wurde erfolgreich generiert!',
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.green.withOpacity(0.9),
-      colorText: Colors.white,
-      duration: const Duration(seconds: 3),
-    );
   }
 
   Future<void> generateQrCodeWithCurrentTotal({
