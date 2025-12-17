@@ -355,279 +355,274 @@ class _ScreenInputState extends State<ScreenInput> {
   }) {
     final controller = Get.find<ScreenInputController>();
 
-    // Gemeinsame Border-Logik für alle Felder
     InputDecoration _inputDecoration(String label) {
       return InputDecoration(
         labelText: label,
-        contentPadding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 12.w),
+        filled: true,
+        fillColor: const Color(0xFFF8F9FA),
+        contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(19.r),
-          borderSide: const BorderSide(color: Colors.transparent),
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(19.r),
-          borderSide: const BorderSide(color: Colors.transparent),
+          borderRadius: BorderRadius.circular(16.r),
+          borderSide: BorderSide(color: Colors.grey.shade300, width: 1.2),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(19.r),
+          borderRadius: BorderRadius.circular(16.r),
           borderSide: BorderSide(color: AppColors.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(19.r),
+          borderRadius: BorderRadius.circular(16.r),
           borderSide: const BorderSide(color: Colors.red, width: 2),
         ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(19.r),
-          borderSide: const BorderSide(color: Colors.red, width: 2),
-        ),
+        labelStyle: TextStyle(fontSize: 13.sp, color: Colors.grey.shade700),
       );
     }
 
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 8.h),
-      child: Container(
-        padding: EdgeInsets.all(14.w),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: AppColors.primary, width: 1.5),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withOpacity(0.08),
-              blurRadius: 8.r,
-              offset: Offset(0, 4.h),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text("Position ${index + 1}",
-                    style: AppText.heading
-                        .copyWith(color: AppColors.primary, fontSize: 15.sp)),
-                IconButton(
-                  icon: Icon(Icons.delete_outline,
-                      color: Colors.red.shade600, size: 22.sp),
-                  onPressed: onDelete,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              ],
-            ),
-            SizedBox(height: 12.h),
-
-            // Menge | Einheit | Preis
-            Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: TextFormField(
-                    initialValue: item.menge != null
-                        ? _formatNumber(item.menge!)
-                        : "1,00",
-                    keyboardType:
-                        TextInputType.numberWithOptions(decimal: true),
-                    decoration: _inputDecoration("Menge *"),
-                    style: TextStyle(fontSize: 14.sp),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return "Erforderlich";
-                      }
-                      final parsed =
-                          double.tryParse(value.replaceAll(',', '.'));
-                      if (parsed == null || parsed <= 0) {
-                        return "> 0";
-                      }
-                      return null;
-                    },
-                    onChanged: (value) {
-                      final parsed =
-                          double.tryParse(value.replaceAll(',', '.')) ?? 0.0;
-                      controller.rechnungTextFielde[index] =
-                          item.copyWith(menge: parsed);
-                    },
-                  ),
-                ),
-                _divider(),
-                Expanded(
-                  flex: 2,
-                  child: TextFormField(
-                    initialValue: item.einh ?? "Stk",
-                    decoration: _inputDecoration("Einheit"),
-                    style: TextStyle(fontSize: 14.sp),
-                    onChanged: (value) {
-                      controller.rechnungTextFielde[index] =
-                          item.copyWith(einh: value);
-                    },
-                  ),
-                ),
-                SizedBox(width: 12.w),
-                _divider(),
-                Expanded(
-                  flex: 3,
-                  child: TextFormField(
-                    initialValue: item.einzelPreis != null
-                        ? _formatNumber(item.einzelPreis!)
-                        : "0,00",
-                    keyboardType:
-                        TextInputType.numberWithOptions(decimal: true),
-                    decoration: _inputDecoration("Einzelpreis € *"),
-                    style: TextStyle(fontSize: 14.sp),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return "Erforderlich";
-                      }
-                      final parsed =
-                          double.tryParse(value.replaceAll(',', '.'));
-                      if (parsed == null || parsed < 0) {
-                        return "≥ 0";
-                      }
-                      return null;
-                    },
-                    onChanged: (value) {
-                      final parsed =
-                          double.tryParse(value.replaceAll(',', '.')) ?? 0.0;
-                      controller.rechnungTextFielde[index] =
-                          item.copyWith(einzelPreis: parsed);
-                    },
-                  ),
-                ),
-              ],
-            ),
-
-            SizedBox(height: 16.h),
-
-            // Bezeichnung
-            TextFormField(
-              initialValue: item.bezeichnung ?? "",
-              decoration: InputDecoration(
-                labelText: "Bezeichnung",
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(19.r),
-                  borderSide: const BorderSide(color: Colors.transparent),
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(19.r),
-                  borderSide: const BorderSide(color: Colors.transparent),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(19.r),
-                  borderSide: BorderSide(color: AppColors.primary, width: 2),
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20.r),
+        border:
+            Border.all(color: AppColors.primary.withOpacity(0.25), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 16.r,
+            offset: Offset(0, 6.h),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header: Position + Delete
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Position ${index + 1}",
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
                 ),
               ),
-              maxLines: 3,
-              style: TextStyle(fontSize: 14.sp),
-              onChanged: (value) {
-                controller.rechnungTextFielde[index] =
-                    item.copyWith(bezeichnung: value);
-              },
-            ),
+              GestureDetector(
+                onTap: onDelete,
+                child: Container(
+                  padding: EdgeInsets.all(6.w),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  child: Icon(Icons.delete_rounded,
+                      color: Colors.red.shade600, size: 20.sp),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 14.h),
 
-            SizedBox(height: 12.h),
-
-            // Bilder-Anzeige
-            if (item.img != null && item.img!.isNotEmpty) ...[
-              SizedBox(
-                height: 100.h,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: item.img!.length,
-                  itemBuilder: (context, imgIndex) {
-                    return Padding(
-                      padding: EdgeInsets.only(right: 8.w),
-                      child: Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8.r),
-                            child: Image.file(
-                              File(item.img![imgIndex]),
-                              width: 100.w,
-                              height: 100.h,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  width: 100.w,
-                                  height: 100.h,
-                                  color: Colors.grey.shade300,
-                                  child: Icon(Icons.broken_image,
-                                      color: Colors.grey),
-                                );
-                              },
-                            ),
-                          ),
-                          Positioned(
-                            top: 4.h,
-                            right: 4.w,
-                            child: GestureDetector(
-                              onTap: () {
-                                controller.removeImageFromPosition(
-                                    index, imgIndex);
-                              },
-                              child: Container(
-                                padding: EdgeInsets.all(4.w),
-                                decoration: BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  Icons.close,
-                                  color: Colors.white,
-                                  size: 16.sp,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
+          // Menge | Einheit | Preis
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  initialValue:
+                      item.menge != null ? _formatNumber(item.menge!) : "1,00",
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                  decoration: _inputDecoration("Menge *"),
+                  style: TextStyle(fontSize: 14.sp),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) return "Pflicht";
+                    final parsed = double.tryParse(value.replaceAll(',', '.'));
+                    if (parsed == null || parsed <= 0) return "> 0";
+                    return null;
+                  },
+                  onChanged: (value) {
+                    final parsed =
+                        double.tryParse(value.replaceAll(',', '.')) ?? 0.0;
+                    controller.rechnungTextFielde[index] =
+                        item.copyWith(menge: parsed);
                   },
                 ),
               ),
-              SizedBox(height: 12.h),
+              SizedBox(width: 10.w),
+              Container(
+                  width: 1,
+                  height: 40.h,
+                  color: AppColors.primary.withOpacity(0.25)),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: TextFormField(
+                  initialValue: item.einh ?? "Stk",
+                  decoration: _inputDecoration("Einheit"),
+                  style: TextStyle(fontSize: 14.sp),
+                  onChanged: (value) {
+                    controller.rechnungTextFielde[index] =
+                        item.copyWith(einh: value);
+                  },
+                ),
+              ),
+              SizedBox(width: 10.w),
+              Container(
+                  width: 1,
+                  height: 40.h,
+                  color: AppColors.primary.withOpacity(0.25)),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: TextFormField(
+                  initialValue: item.einzelPreis != null
+                      ? _formatNumber(item.einzelPreis!)
+                      : "0,00",
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                  decoration: _inputDecoration("Preis € *"),
+                  style: TextStyle(fontSize: 14.sp),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) return "Pflicht";
+                    final parsed = double.tryParse(value.replaceAll(',', '.'));
+                    if (parsed == null || parsed < 0) return "≥ 0";
+                    return null;
+                  },
+                  onChanged: (value) {
+                    final parsed =
+                        double.tryParse(value.replaceAll(',', '.')) ?? 0.0;
+                    controller.rechnungTextFielde[index] =
+                        item.copyWith(einzelPreis: parsed);
+                  },
+                ),
+              ),
             ],
+          ),
+          SizedBox(height: 14.h),
 
-            // Action Buttons
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _actionButton(
-                      icon: Icons.image_outlined,
-                      label: item.img != null && item.img!.isNotEmpty
-                          ? "Bilder anzeigen (${item.img!.length})"
-                          : "Bilder anzeigen",
-                      onTap: () {
-                        if (item.img != null && item.img!.isNotEmpty) {
-                          _showImageGallery(context, index);
-                        } else {
-                          Get.snackbar("Info", "Keine Bilder vorhanden");
-                        }
-                      }),
-                  SizedBox(height: 10.h),
-                  _actionButton(
-                      icon: Icons.photo_library_outlined,
-                      label: "Bilder hinzufügen",
-                      onTap: () => _showImageSourceDialog(context, index)),
-                ],
+          // Bezeichnung
+          TextFormField(
+            initialValue: item.bezeichnung ?? "",
+            decoration: _inputDecoration("Bezeichnung"),
+            maxLines: 3,
+            minLines: 1,
+            style: TextStyle(fontSize: 14.sp),
+            onChanged: (value) {
+              controller.rechnungTextFielde[index] =
+                  item.copyWith(bezeichnung: value);
+            },
+          ),
+          SizedBox(height: 14.h),
+
+          // Bilder (falls vorhanden)
+          if (item.img != null && item.img!.isNotEmpty) ...[
+            SizedBox(
+              height: 100.h,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: item.img!.length,
+                itemBuilder: (context, imgIndex) {
+                  return Padding(
+                    padding: EdgeInsets.only(right: 10.w),
+                    child: Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(16.r),
+                          child: Image.file(
+                            File(item.img![imgIndex]),
+                            width: 100.w,
+                            height: 100.h,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        Positioned(
+                          top: 4.h,
+                          right: 4.w,
+                          child: GestureDetector(
+                            onTap: () => controller.removeImageFromPosition(
+                                index, imgIndex),
+                            child: Container(
+                              padding: EdgeInsets.all(5.w),
+                              decoration: const BoxDecoration(
+                                  color: Colors.red, shape: BoxShape.circle),
+                              child: Icon(Icons.close,
+                                  color: Colors.white, size: 14.sp),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ),
+            SizedBox(height: 14.h),
           ],
-        ),
+
+          // Action Buttons – kompakt nebeneinander
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildCompactActionButton(
+                icon: Icons.photo_library_rounded,
+                label: "Hinzufügen",
+                onTap: () => _showImageSourceDialog(context, index),
+              ),
+              _buildCompactActionButton(
+                icon: Icons.image_search_rounded,
+                label: item.img?.isNotEmpty == true
+                    ? "${item.img!.length} Anzeigen"
+                    : "Anzeigen",
+                onTap: () {
+                  if (item.img?.isNotEmpty == true) {
+                    _showImageGallery(context, index);
+                  } else {
+                    Get.snackbar("Info", "Keine Bilder vorhanden",
+                        backgroundColor: Colors.grey.shade700,
+                        colorText: Colors.white);
+                  }
+                },
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
-  Widget _divider() {
-    return Container(
-      width: 1,
-      height: 32.h,
-      color: AppColors.primary.withOpacity(0.2),
-      margin: EdgeInsets.symmetric(horizontal: 10.w),
+// Kompakter Action-Button für wenig Platz
+  Widget _buildCompactActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+              colors: [AppColors.primary, AppColors.primary.withOpacity(0.85)]),
+          borderRadius: BorderRadius.circular(16.r),
+          boxShadow: [
+            BoxShadow(
+                color: AppColors.primary.withOpacity(0.25),
+                blurRadius: 8.r,
+                offset: Offset(0, 4.h)),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: Colors.white, size: 18.sp),
+            SizedBox(width: 6.w),
+            Text(
+              label,
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
