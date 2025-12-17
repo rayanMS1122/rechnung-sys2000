@@ -61,8 +61,8 @@ flutter:
         - asset: assets/fonts/cour.ttf
 
 flutter_launcher_icons:
-  android: true
+  android: false
   ios: true
-  image_path: "assets/senat.png"
+  image_path: "assets/senat_ios.png"
   min_sdk_android: 21
   remove_alpha_ios: true
